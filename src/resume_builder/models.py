@@ -52,7 +52,7 @@ class EducationEntry(BaseModel):
     start_date: str = Field(description="Start date, e.g. Jan 2021 or 2021")
     end_date: str = Field(description="Start date, e.g. Jan 2021 or 2021")
     degree_mark: Optional[str] = Field(default=None, description="Final degree mark")
-    honours: Optional[bool] = Field(default=None, description="Honours")
+    honours: Optional[str] = Field(default=None, description="Honours")
 
 
 # ------------------------------------------------------------
@@ -252,8 +252,8 @@ class TailoredResume(BaseModel):
     education: list[EducationEntry] = Field(
         description="Diplomas, degrees mentioned in the original resume"
     )
-    certifications: Optional[list[str]] = Field(
-        default=None, description="List of all certifications"
+    certifications: list[str] = Field(
+        default_factory=list, description="List of all certifications"
     )
 
     # Quality metadata (not shown on resume)

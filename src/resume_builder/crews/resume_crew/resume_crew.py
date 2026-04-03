@@ -1,51 +1,147 @@
+"""
+resume_crew.py
+--------------
+Defines the ResumeBuilderCrew: five-agent pipeline per (resume, job) pair.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
 from crewai import Agent, Crew, Process, Task
-from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.project import CrewBase, agent, crew, task
 
-# If you want to run a snippet of code before or after the crew starts,
-# you can use the @before_kickoff and @after_kickoff decorators
-# https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
+from resume_builder.config import settings
+from resume_builder.models import (
+    JobRequirements,
+    ParsedResume,
+    TailoredResume,
+    TailoringStrategy,
+)
 
 
 @CrewBase
-class PoemCrew:
-    """Poem Crew"""
+class ResumeBuilderCrew:
+    """Five-agent sequential crew for a single (resume, job) pair"""
 
-    agents: list[BaseAgent]
-    tasks: list[Task]
+    agents_config = str(Path(__file__).parent / "config" / "agents.yaml")
+    tasks_config = str(Path(__file__).parent / "config" / "tasks.yaml")
 
-    # Learn more about YAML configuration files here:
-    # Agents: https://docs.crewai.com/concepts/agents#yaml-configuration-recommended
-    # Tasks: https://docs.crewai.com/concepts/tasks#yaml-configuration-recommended
-    agents_config = "config/agents.yaml"
-    tasks_config = "config/tasks.yaml"
+    def __init__(self, session_id: str = "", job_index: int = 0) -> None:
+        super().__init__()
+        self._session_id = session_id
+        self._job_index = job_index
+        self._session_id = session_id
 
-    # If you would lik to add tools to your crew, you can learn more about it here:
-    # https://docs.crewai.com/concepts/agents#agent-tools
+    # -------------------- Agents --------------------
+
     @agent
-    def poem_writer(self) -> Agent:
+    def resume_analyzer(self) -> Agent:
         return Agent(
-            config=self.agents_config["poem_writer"],  # type: ignore[index]
+            config=self.agents_config["resume_analyzer"],  # type: ignore[index]
+            llm=settings.analyst_model,
+            verbose=settings.crewai_verbose,
+            max_iter=3,
+            max_tokens=4096,
         )
 
-    # To learn more about structured task outputs,
-    # task dependencies, and task callbacks, check out the documentation:
-    # https://docs.crewai.com/concepts/tasks#overview-of-a-task
-    @task
-    def write_poem(self) -> Task:
-        return Task(
-            config=self.tasks_config["write_poem"],  # type: ignore[index]
+    @agent
+    def job_analyzer(self) -> Agent:
+        return Agent(
+            config=self.agents_config["job_analyzer"],  # type: ignore[index]
+            llm=settings.analyst_model,
+            verbose=settings.crewai_verbose,
+            max_iter=3,
+            max_tokens=2048,
         )
+
+    @agent
+    def resume_strategist(self) -> Agent:
+        return Agent(
+            config=self.agents_config["resume_strategist"],  # type: ignore[index]
+            llm=settings.writer_model,
+            verbose=settings.crewai_verbose,
+            max_iter=4,
+            max_tokens=2048,
+        )
+
+    @agent
+    def resume_writer(self) -> Agent:
+        return Agent(
+            config=self.agents_config["resume_writer"],  # type: ignore[index]
+            llm=settings.writer_model,
+            verbose=settings.crewai_verbose,
+            max_iter=5,
+            max_tokens=8192,
+        )
+
+    @agent
+    def quality_reviewer(self) -> Agent:
+        return Agent(
+            config=self.agents_config["quality_reviewer"],  # type: ignore[index]
+            llm=settings.writer_model,
+            verbose=settings.crewai_verbose,
+            max_iter=4,
+            max_tokens=8192,
+        )
+
+    # -------------------- Tasks --------------------
+
+    @task
+    def parse_resume_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["parse_resume_task"],  # type: ignore[index]
+            output_pydantic=ParsedResume,
+        )
+
+    @task
+    def analyze_job_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["analyze_job_task"],  # type: ignore[index]
+            output_pydantic=JobRequirements,
+        )
+
+    @task
+    def build_strategy_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["build_strategy_task"],  # type: ignore[index]
+            output_pydantic=TailoringStrategy,
+            context=[self.parse_resume_task, self.analyze_job_task],
+        )
+
+    @task
+    def write_resume_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["write_resume_task"],  # type: ignore[index]
+            output_pydantic=TailoredResume,
+            context=[
+                self.parse_resume_task,
+                self.analyze_job_task,
+                self.build_strategy_task,
+            ],
+        )
+
+    @task
+    def review_resume_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["review_resume_task"],  # type: ignore[index]
+            output_pydantic=TailoredResume,
+            context=[
+                self.parse_resume_task,
+                self.analyze_job_task,
+                self.build_strategy_task,
+                self.write_resume_task,
+            ],
+        )
+
+    # -------------------- Crew --------------------
 
     @crew
     def crew(self) -> Crew:
-        """Creates the Research Crew"""
-        # To learn how to add knowledge sources to your crew, check out the documentation:
-        # https://docs.crewai.com/concepts/knowledge#what-is-knowledge
-
         return Crew(
-            agents=self.agents,  # Automatically created by the @agent decorator
-            tasks=self.tasks,  # Automatically created by the @task decorator
+            agents=self.agents,  # pyright: ignore[reportAttributeAccessIssue]
+            tasks=self.tasks,  # pyright: ignore[reportAttributeAccessIssue]
             process=Process.sequential,
-            verbose=True,
+            verbose=settings.crewai_verbose,
+            memory=False,
         )

@@ -218,3 +218,6 @@ __marimo__/
 # Others
 Session.vim
 AGENTS.md
+/inputs
+/outputs
+/tmp

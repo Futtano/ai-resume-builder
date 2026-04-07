@@ -118,8 +118,7 @@ class ResumeFormatterTool:
 
     def _write_summary(self, doc: DocumentClass, resume: TailoredResume) -> None:
         self._add_section_heading(doc, "Professional Summary")
-        summary_para = doc.add_paragraph(resume.professional_summary)
-        summary_para.style.font.italic = False  # type: ignore [reportAttributeAccessIssue]
+        doc.add_paragraph(resume.professional_summary)
 
     def _write_experience(self, doc: DocumentClass, resume: TailoredResume) -> None:
         self._add_section_heading(doc, "Professional Experience")

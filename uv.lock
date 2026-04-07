@@ -2984,6 +2984,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pymupdf" },
     { name = "pypdf" },
+    { name = "python-docx" },
 ]
 
 [package.metadata]
@@ -2992,6 +2993,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11.10" },
     { name = "pymupdf", specifier = ">=1.26.7" },
     { name = "pypdf", specifier = ">=6.9.2" },
+    { name = "python-docx", specifier = ">=1.2.0" },
 ]
 
 [[package]]

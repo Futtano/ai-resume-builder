@@ -14,7 +14,6 @@ from crewai.project import CrewBase, agent, crew, task
 from resume_builder.config import settings
 from resume_builder.models import (
     JobRequirements,
-    ParsedResume,
     TailoredResume,
     TailoringStrategy,
 )
@@ -28,28 +27,16 @@ class ResumeBuilderCrew:
     tasks_config = str(Path(__file__).parent / "config" / "tasks.yaml")
 
     def __init__(self, session_id: str = "", job_index: int = 0) -> None:
-        super().__init__()
         self._session_id = session_id
         self._job_index = job_index
-        self._session_id = session_id
 
     # -------------------- Agents --------------------
-
-    @agent
-    def resume_analyzer(self) -> Agent:
-        return Agent(
-            config=self.agents_config["resume_analyzer"],  # type: ignore[index]
-            llm=settings.analyst_model,
-            verbose=settings.crewai_verbose,
-            max_iter=3,
-            max_tokens=4096,
-        )
 
     @agent
     def job_analyzer(self) -> Agent:
         return Agent(
             config=self.agents_config["job_analyzer"],  # type: ignore[index]
-            llm=settings.analyst_model,
+            llm=settings.analyst_llm,
             verbose=settings.crewai_verbose,
             max_iter=3,
             max_tokens=2048,
@@ -59,7 +46,7 @@ class ResumeBuilderCrew:
     def resume_strategist(self) -> Agent:
         return Agent(
             config=self.agents_config["resume_strategist"],  # type: ignore[index]
-            llm=settings.writer_model,
+            llm=settings.writer_llm,
             verbose=settings.crewai_verbose,
             max_iter=4,
             max_tokens=2048,
@@ -69,7 +56,7 @@ class ResumeBuilderCrew:
     def resume_writer(self) -> Agent:
         return Agent(
             config=self.agents_config["resume_writer"],  # type: ignore[index]
-            llm=settings.writer_model,
+            llm=settings.writer_llm,
             verbose=settings.crewai_verbose,
             max_iter=5,
             max_tokens=8192,
@@ -79,20 +66,13 @@ class ResumeBuilderCrew:
     def quality_reviewer(self) -> Agent:
         return Agent(
             config=self.agents_config["quality_reviewer"],  # type: ignore[index]
-            llm=settings.writer_model,
+            llm=settings.writer_llm,
             verbose=settings.crewai_verbose,
             max_iter=4,
             max_tokens=8192,
         )
 
     # -------------------- Tasks --------------------
-
-    @task
-    def parse_resume_task(self) -> Task:
-        return Task(
-            config=self.tasks_config["parse_resume_task"],  # type: ignore[index]
-            output_pydantic=ParsedResume,
-        )
 
     @task
     def analyze_job_task(self) -> Task:
@@ -106,7 +86,7 @@ class ResumeBuilderCrew:
         return Task(
             config=self.tasks_config["build_strategy_task"],  # type: ignore[index]
             output_pydantic=TailoringStrategy,
-            context=[self.parse_resume_task, self.analyze_job_task],
+            context=[self.analyze_job_task()],  # type: ignore[reportCallIssue]
         )
 
     @task
@@ -115,9 +95,8 @@ class ResumeBuilderCrew:
             config=self.tasks_config["write_resume_task"],  # type: ignore[index]
             output_pydantic=TailoredResume,
             context=[
-                self.parse_resume_task,
-                self.analyze_job_task,
-                self.build_strategy_task,
+                self.analyze_job_task(),  # type: ignore[reportCallIssue]
+                self.build_strategy_task(),  # type: ignore[reportCallIssue]
             ],
         )
 
@@ -127,10 +106,9 @@ class ResumeBuilderCrew:
             config=self.tasks_config["review_resume_task"],  # type: ignore[index]
             output_pydantic=TailoredResume,
             context=[
-                self.parse_resume_task,
-                self.analyze_job_task,
-                self.build_strategy_task,
-                self.write_resume_task,
+                self.analyze_job_task(),  # type: ignore[reportCallIssue]
+                self.build_strategy_task(),  # type: ignore[reportCallIssue]
+                self.write_resume_task(),  # type: ignore[reportCallIssue]
             ],
         )
 

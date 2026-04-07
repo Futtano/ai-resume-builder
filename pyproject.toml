@@ -5,17 +5,17 @@ description = "resume_builder using crewAI"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "crewai[tools]==1.12.2",
-    "pydantic>=2.11.10",
-    "pymupdf>=1.26.7",
-    "pypdf>=6.9.2",
+  "crewai[tools]==1.12.2",
+  "pydantic>=2.11.10",
+  "pymupdf>=1.26.7",
+  "pypdf>=6.9.2",
+  "python-docx>=1.2.0",
 ]
 
 [project.scripts]
-kickoff = "resume_builder.main:kickoff"
-run_crew = "resume_builder.main:kickoff"
-plot = "resume_builder.main:plot"
-run_with_trigger = "resume_builder.main:run_with_trigger"
+resume-builder = "resume_builder.main:app"
+kickoff = "resume_builder.main:app"
+run_crew = "resume_builder.main:app"
 
 [build-system]
 requires = ["hatchling"]

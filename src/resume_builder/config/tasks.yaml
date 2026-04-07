@@ -1,37 +1,3 @@
-parse_resume_task:
-  description: >
-    You have been given the raw text of a candidate's resume, extracted from
-    their PDF.
-
-    Raw resume text:
-    ---
-    {resume_raw_text}
-    ---
-
-    Additional context the candidate provided about themselves:
-    ---
-    {intro_brief}
-    ---
-
-    Your task is to parse this resume completely and structure all the information
-    into a well-organised data model. Follow these rules:
-
-    1. Extract ALL experience entries — do not skip any role, even short-term ones.
-    2. For each experience entry, identify the skills demonstrated from the bullet
-       points and context, even if not explicitly listed.
-    3. Compile a comprehensive skills list — include technical skills, tools,
-       frameworks, methodologies, and soft skills visible anywhere in the resume.
-    4. Preserve the exact text of bullet points for now; the writer will improve
-       them later. Do NOT invent or embellish.
-    5. Estimate the total years of experience by summing the duration of all roles.
-    6. Include the full raw_text field in your output.
-
-  expected_output: >
-    A fully structured ParsedResume object with all fields populated.
-    Every section of the resume must be represented. No information should be lost.
-
-  agent: resume_analyzer
-
 analyze_job_task:
   description: >
     You have been given the raw text of a job posting. Analyse it thoroughly
@@ -68,18 +34,15 @@ build_strategy_task:
     You have the candidate's structured profile and the job requirements.
     Build a precise tailoring strategy.
 
-    Candidate profile summary:
-    Name: {candidate_name}
-    Total years of experience: {total_years_experience}
-    Skills: {candidate_skills}
+    The candidate's parsed resume is available as structured JSON:
+    ---
+    {parsed_resume_json}
+    ---
 
-    Job target:
-    Role: {job_title} at {company}
-    Required skills: {required_skills}
-    Preferred skills: {preferred_skills}
-    ATS keywords: {ats_keywords}
-
-    Full parsed resume and job requirements are available in your context.
+    The full parsed job requirements (JobRequirements object) are available
+    in your context from the analyze_job_task, including the exact job title,
+    company, seniority level, required/preferred skills, key responsibilities,
+    and ATS keywords. The raw job posting is also available for reference.
 
     Your task:
 
@@ -104,17 +67,16 @@ build_strategy_task:
     must be a concrete, one-sentence narrative directive for the writer.
 
   agent: resume_strategist
-  context:
-    - parse_resume_task
-    - analyze_job_task
 
 write_resume_task:
   description: >
-    You are writing a tailored resume for {candidate_name} targeting the
-    {job_title} role at {company}.
+    You are writing a tailored resume.
 
     You have access to:
-    - The fully parsed original resume (from context)
+    - The candidate's full parsed resume as structured JSON:
+      ---
+      {parsed_resume_json}
+      ---
     - The structured job requirements (from context)
     - The tailoring strategy (from context)
 
@@ -156,18 +118,18 @@ write_resume_task:
     made (3–5 sentences).
 
   agent: resume_writer
-  context:
-    - parse_resume_task
-    - analyze_job_task
-    - build_strategy_task
-  output_file: "outputs/{company}_{job_title}_draft.json"
 
 review_resume_task:
   description: >
-    You are performing a final quality review of a tailored resume for
-    {candidate_name} targeting {job_title} at {company}.
+    You are performing a final quality review of a tailored resume.
 
-    The draft resume is available in your context (from write_resume_task).
+    You have access to:
+    - The candidate's full parsed resume as structured JSON:
+      ---
+      {parsed_resume_json}
+      ---
+    - The draft tailored resume (from write_resume_task, in context).
+    - The tailoring strategy (from context).
 
     Review it against these quality criteria:
 
@@ -203,9 +165,3 @@ review_resume_task:
     The confidence_score should reflect the final post-review assessment.
 
   agent: quality_reviewer
-  context:
-    - parse_resume_task
-    - analyze_job_task
-    - build_strategy_task
-    - write_resume_task
-  output_file: "outputs/{company}_{job_title}_final.json"

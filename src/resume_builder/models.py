@@ -206,14 +206,14 @@ class TailoredExperienceEntry(BaseModel):
         )
     )
 
-    @field_validator("bullets")
-    @classmethod
-    def at_least_two_bullets(cls, v: list[str]) -> list[str]:
-        if len(v) < 2:
-            raise ValueError(
-                "Each experience entry must have at least two bullet points"
-            )
-        return v
+    # @field_validator("bullets")
+    # @classmethod
+    # def at_least_two_bullets(cls, v: list[str]) -> list[str]:
+    #     if len(v) < 2:
+    #         raise ValueError(
+    #             "Each experience entry must have at least two bullet points"
+    #         )
+    #     return v
 
 
 # ------------------------------------------------------------
@@ -309,8 +309,8 @@ class ResumeBuilderState(BaseModel):
     resume_raw_text: str = Field(
         default="", description="Raw text extracted from the PDF"
     )
-    into_brief: str = Field(default="", description="Raw text for each job posting")
-    job_posting_raw: list[str] = Field(
+    intro_brief: str = Field(default="", description="Raw text for each job posting")
+    job_postings_raw: list[str] = Field(
         default_factory=list, description="Raw text of each job posting"
     )
 
@@ -318,7 +318,7 @@ class ResumeBuilderState(BaseModel):
     parsed_resume: Optional[ParsedResume] = Field(
         default=None, description="Structured model of the old resume"
     )
-    tailored_resume: Optional[list[TailoredResume]] = Field(
+    tailored_resumes: list[TailoredResume] = Field(
         default_factory=list,
         description="List of structured models for each of the tailored resumes",
     )

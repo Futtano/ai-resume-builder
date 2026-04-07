@@ -70,10 +70,9 @@ class PDFExtractorTool(BaseTool):
 
     def _extract_with_pymupdf(self, path: Path) -> Optional[str]:
         try:
-            # older PyMuPDF import package
-            import fritz  # type: ignore[import]
+            import fitz  # PyMuPDF
 
-            doc = fritz.open(str(path))
+            doc = fitz.open(str(path))
             pages: list[str] = []
             for page in doc:
                 # 'text' mode preserves reading order best for resumes
@@ -117,8 +116,10 @@ class PDFExtractorTool(BaseTool):
         # Normalise line endings
         text = text.replace("\r\n", "\n").replace("\r", "\n")
 
-        # Collapse lines with trailing hyphens (broken words across lines)
-        text = re.sub(r"-\n(\w)", r"\1", text)
+        # Collapse hyphenated words split across lines.
+        # Only match when a hyphen ends a word fragment (no leading space/bullet),
+        # to avoid stripping list bullets like "- Python".
+        text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)
 
         # Collapse excessive blank lines (> 2 consecutive)
         text = re.sub(r"\n{3,}", "\n\n", text)

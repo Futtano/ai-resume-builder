@@ -17,6 +17,12 @@ Usage:
         --jobs-dir inputs/jobs/ \\
         --intro "..."
 
+    # With job posting URLs
+    resume-builder run \\
+        --resume inputs/my_resume.pdf \\
+        --job-urls "https://example.com/job1" "https://example.com/job2" \\
+        --intro "..."
+
     # Verbose mode (show agent thinking)
     CREWAI_VERBOSE=true resume-builder run ...
 """
@@ -37,6 +43,7 @@ from rich.table import Table
 load_dotenv()
 
 from resume_builder.flow import ResumeBuilderFlow  # noqa: E402
+from resume_builder.tools.job_scraper import scrape_job_url  # noqa: E402
 
 app = typer.Typer(
     name="resume-builder",
@@ -69,6 +76,11 @@ def run(
         help="Directory of .txt job posting files (alternative to --jobs)",
         exists=True,
     ),
+    job_urls: Optional[list[str]] = typer.Option(
+        None,
+        "--job-urls",
+        help="One or more job posting URLs to scrape",
+    ),
     intro: str = typer.Option(
         "",
         "--intro",
@@ -92,8 +104,10 @@ def run(
     if jobs_dir:
         job_posting_files.extend(sorted(jobs_dir.glob("*.txt")))
 
-    if not job_posting_files:
-        console.print("[red]Error:[/] Provide job postings via --jobs or --jobs-dir")
+    if not job_posting_files and not job_urls:
+        console.print(
+            "[red]Error:[/] Provide job postings via --jobs, --jobs-dir, or --job-urls"
+        )
         raise typer.Exit(1)
 
     # Validate API key present
@@ -112,15 +126,34 @@ def run(
         except Exception as exc:
             console.print(f"[yellow]Warning:[/] Could not read {job_file}: {exc}")
 
+    # -- Scrape job posting URLs ------------------------------------------
+    if job_urls:
+        for url in job_urls:
+            try:
+                console.print(f"[dim]Scraping {url}...[/]")
+                text = scrape_job_url(url)
+                job_postings.append(text)
+                console.print(f"[green]✓[/] Scraped {len(text):,} chars from {url}")
+            except Exception as exc:
+                console.print(f"[yellow]Warning:[/] Could not scrape {url}: {exc}")
+
     if not job_postings:
         console.print("[red]Error:[/] All job posting files failed to load.")
         raise typer.Exit(1)
 
     # -- Banner ----------------------------------------------
+    file_count = len(job_postings) - (len(job_urls) if job_urls else 0)
+    url_count = len(job_urls) if job_urls else 0
+    sources = []
+    if file_count:
+        sources.append(f"{file_count} file(s)")
+    if url_count:
+        sources.append(f"{url_count} URL(s)")
+
     console.print(
         Panel(
             f"[bold]Resume:[/] {resume.name}\n"
-            f"[bold]Job postings:[/] {len(job_postings)}\n"
+            f"[bold]Job postings:[/] {len(job_postings)} ({', '.join(sources)})\n"
             f"[bold]Output:[/] {output_dir}",
             title="[bold blue]Resume Builder[/]",
             expand=False,

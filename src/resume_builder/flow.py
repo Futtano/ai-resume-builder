@@ -46,12 +46,25 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
     ) -> None:
         super().__init__()
 
+        # ── Exactly one resume source ───────────────────────────────
+        if resume_pdf_path is not None and resume_text is not None:
+            raise ValueError(
+                "Provide exactly one resume source: "
+                "resume_pdf_path or resume_text (not both)"
+            )
         if resume_pdf_path is None and resume_text is None:
-            raise ValueError("Provide either resume_pdf_path or resume_text")
+            raise ValueError(
+                "Provide exactly one resume source: "
+                "resume_pdf_path or resume_text"
+            )
+
+        # ── At least one job posting ────────────────────────────────
+        self._job_postings = job_postings or []
+        if not self._job_postings:
+            raise ValueError("Provide at least one job posting")
 
         self._resume_pdf_path = resume_pdf_path
         self._resume_text = resume_text
-        self._job_postings = job_postings or []
         self._intro_brief = intro_brief
         self._output_dir = output_dir or settings.output_dir
         self._on_progress = on_progress

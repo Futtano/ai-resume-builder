@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     # ── Output ────────────────────────────────────────────────────────
     output_dir: Path = Field(default=Path("./outputs"))
 
+    # ── Logging ───────────────────────────────────────────────────────
+    log_level: str = Field(
+        default="INFO",
+        description="Logging level: DEBUG, INFO, WARNING, ERROR",
+    )
+
     # ── CrewAI behaviour ─────────────────────────────────────────────
     crewai_verbose: bool = False
     max_concurrent_jobs: int = Field(

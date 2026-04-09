@@ -11,12 +11,17 @@ Falls back to pypdf if PyMuPDF is not available.
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 from typing import Optional, Type
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
+
+from resume_builder.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class PDFExtractorInput(BaseModel):
@@ -45,6 +50,7 @@ class PDFExtractorTool(BaseTool):
 
     def _run(self, file_path: str) -> str:
         path = Path(file_path).resolve()
+        logger.info("Extracting text from PDF: %s", path.name)
 
         if not path.exists():
             raise FileNotFoundError(f"PDF not found: {path}")
@@ -54,6 +60,7 @@ class PDFExtractorTool(BaseTool):
         text = self._extract_with_pymupdf(path)
         if not text or len(text.strip()) < 100:
             # PyMuPDF returned too little - try fallback
+            logger.debug("PyMuPDF extracted too little, trying pypdf fallback")
             text = self._extract_with_pypdf(path)
 
         if not text or len(text.strip()) < 50:
@@ -62,7 +69,9 @@ class PDFExtractorTool(BaseTool):
                 "The PDF may be scanned/image-based."
             )
 
-        return self._clean_text(text)
+        cleaned = self._clean_text(text)
+        logger.info("Extracted %d chars (%d after cleaning)", len(text), len(cleaned))
+        return cleaned
 
     # ------------------------------------------------------------
     # Extraction backends
@@ -82,8 +91,7 @@ class PDFExtractorTool(BaseTool):
         except ImportError:
             return None
         except Exception as exc:
-            # Log but do not crash - let the fallback try
-            print(f"[PDFExtractor] PyMuPDF error: {exc}")
+            logger.debug("PyMuPDF failed: %s", exc)
             return None
 
     def _extract_with_pypdf(self, path: Path) -> Optional[str]:
@@ -96,7 +104,7 @@ class PDFExtractorTool(BaseTool):
         except ImportError:
             return None
         except Exception as exc:
-            print(f"[PDFExtractor] pypdf error: {exc}")
+            logger.debug("pypdf failed: %s", exc)
             return None
 
     # ------------------------------------------------------------

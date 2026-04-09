@@ -21,10 +21,13 @@ from crewai.types.streaming import CrewStreamingOutput
 
 from resume_builder.config import settings
 from resume_builder.crew import ResumeBuilderCrew
+from resume_builder.logger import get_logger
 from resume_builder.models import ResumeBuilderState, TailoredResume
 from resume_builder.resume_parser import parse_resume
 from resume_builder.tools.pdf_extractor import PDFExtractorTool
 from resume_builder.tools.resume_formatter import ResumeFormatterTool
+
+logger = get_logger(__name__)
 
 
 class ResumeBuilderFlow(Flow[ResumeBuilderState]):
@@ -63,17 +66,21 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
     def extract_resume(self) -> None:
         """Step 1: Extract text from the candidate's resume PDF."""
         self._emit_progress("Extracting resume text...", 0, self.state.total_jobs)
+        logger.info("Starting resume text extraction")
 
         if self._resume_text:
             self.state.resume_raw_text = self._resume_text
+            logger.debug("Using provided resume text (not PDF)")
         else:
             extractor = PDFExtractorTool()
             self.state.resume_raw_text = extractor._run(str(self._resume_pdf_path))
+            logger.info("Extracted resume from PDF")
 
         if not self.state.resume_raw_text.strip():
             raise RuntimeError("Resume text is empty after extraction")
 
         char_count = len(self.state.resume_raw_text)
+        logger.info("Resume extracted (%d chars)", char_count)
         self._emit_progress(
             f"Resume extracted ({char_count:,} chars). Parsing...",
             0,
@@ -86,6 +93,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         self._emit_progress(
             "Parsing resume into structured model...", 0, self.state.total_jobs
         )
+        logger.info("Parsing resume into structured model")
 
         parsed = parse_resume(
             resume_raw_text=self.state.resume_raw_text,
@@ -96,6 +104,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         name = parsed.contact.name
         skills_count = len(parsed.skills)
         yoe = parsed.totals_yoe or "?"
+        logger.info("Resume parsed: %s — %d skills, ~%s YOE", name, skills_count, yoe)
         self._emit_progress(
             f"✓ Resume parsed: {name} — {skills_count} skills, ~{yoe} YOE. "
             f"Starting generations...",
@@ -106,18 +115,24 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
     @listen(parse_resume_step)
     def generate_tailored_resume(self) -> None:
         """Step 3: Run one 4-agent crew per job posting."""
+        logger.info("Starting tailored resume generation for %d job(s)", self.state.total_jobs)
         for (
             index,
             job_posting_raw,
         ) in enumerate(self.state.job_postings_raw):
             label = f"job {index + 1}/{self.state.total_jobs}"
             self._emit_progress(f"Processing {label}...", index, self.state.total_jobs)
+            logger.info("Processing %s", label)
 
             try:
                 resume = self._run_crew_for_job(job_posting_raw, index)
                 self.state.tailored_resumes.append(resume)
                 self.state.completed_jobs += 1
 
+                logger.info(
+                    "✓ %s complete — %s at %s (confidence: %d%%)",
+                    label, resume.job_title, resume.company, resume.confidence_score,
+                )
                 self._emit_progress(
                     f"✓ {label} complete -- {resume.job_title} at {resume.company} "
                     f"(confidence: {resume.confidence_score}%)",
@@ -126,6 +141,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
                 )
             except Exception as exc:
                 msg = f"✗ {label} failed: {exc}"
+                logger.error("✗ %s failed", label, exc_info=True)
                 self.state.errors.append(msg)
                 self._emit_progress(
                     msg, self.state.completed_jobs, self.state.total_jobs
@@ -135,6 +151,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
     def export_documents(self) -> None:
         """Step 4: Convert all TailoredResume objects to .docx files."""
         if not self.state.tailored_resumes:
+            logger.warning("No resumes to export (all jobs may have failed)")
             self._emit_progress(
                 "No resumes to export (all jobs may have failed).",
                 0,
@@ -142,6 +159,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
             )
             return
 
+        logger.info("Exporting %d resume(s) to .docx", len(self.state.tailored_resumes))
         formatter = ResumeFormatterTool()
         exported: list[Path] = []
 
@@ -149,10 +167,13 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
             try:
                 path = formatter.generate(resume, output_dir=self._output_dir)
                 exported.append(path)
+                logger.debug("Exported: %s", path)
             except Exception as exc:
                 err = f"Failed to export {resume.output_filename()}: {exc}"
+                logger.error("Export failed for %s: %s", resume.output_filename(), exc)
                 self.state.errors.append(err)
 
+        logger.info("%d resume(s) exported to %s", len(exported), self._output_dir)
         self._emit_progress(
             f"Done! {len(exported)} resume(s) written to {self._output_dir}",
             self.state.total_jobs,
@@ -170,6 +191,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
                 "must complete before generate_tailored_resume."
             )
 
+        logger.debug("Creating crew for job %d", job_index)
         crew_instance = ResumeBuilderCrew(
             session_id="",  # pyright: ignore[reportCallIssue]
             job_index=job_index,  # pyright: ignore[reportCallIssue]
@@ -180,6 +202,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
             "job_posting_raw": job_posting_raw,
         }
 
+        logger.debug("Kicking off crew for job %d", job_index)
         result: CrewOutput | CrewStreamingOutput = crew_instance.crew().kickoff(
             inputs=inputs
         )
@@ -191,6 +214,5 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         return result.pydantic  # type: ignore[reportReturnType]
 
     def _emit_progress(self, message: str, completed: int, total: int) -> None:
-        print(f"[ResumeBuilderFlow] {message}")
         if self._on_progress:
             self._on_progress(message, completed, total)

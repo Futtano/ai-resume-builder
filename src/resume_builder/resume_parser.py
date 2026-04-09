@@ -16,7 +16,10 @@ from pathlib import Path
 from crewai import Agent
 
 from resume_builder.config import settings
+from resume_builder.logger import get_logger
 from resume_builder.models import ParsedResume
+
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Config path (relative to this file)
@@ -44,10 +47,12 @@ def parse_resume(
     """
     import yaml
 
+    logger.debug("Loading resume parser agent config")
     cfg = yaml.safe_load(_PARSER_CONFIG_PATH.read_text(encoding="utf-8"))
     agent_cfg = cfg["agent"]
     task_cfg = cfg["task"]
 
+    logger.debug("Creating resume parser agent with model=%s", settings.analyst_model)
     agent = Agent(
         role=agent_cfg["role"],
         goal=agent_cfg["goal"],
@@ -63,12 +68,16 @@ def parse_resume(
         intro_brief=intro_brief,
     )
 
+    logger.info("Running resume parser (model=%s)", settings.analyst_model)
     result = agent.kickoff(prompt, response_format=ParsedResume)
 
     if result.pydantic is None:  # pyright: ignore[reportAttributeAccessIssue]
+        logger.error("Resume parser returned no structured output")
         raise RuntimeError(
             "Resume parser returned no structured output. "
             "Check CREWAI_VERBOSE=true logs for details."
         )
 
+    name = result.pydantic.contact.name  # type: ignore[reportReturnType]
+    logger.info("Resume parsing complete: %s", name)
     return result.pydantic  # type: ignore[reportReturnType]

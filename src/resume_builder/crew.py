@@ -12,11 +12,14 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from resume_builder.config import settings
+from resume_builder.logger import get_logger
 from resume_builder.models import (
     JobRequirements,
     TailoredResume,
     TailoringStrategy,
 )
+
+logger = get_logger(__name__)
 
 
 @CrewBase
@@ -116,6 +119,7 @@ class ResumeBuilderCrew:
 
     @crew
     def crew(self) -> Crew:
+        logger.debug("Building crew with %d agents, process=sequential", len(self.agents))
         return Crew(
             agents=self.agents,  # pyright: ignore[reportAttributeAccessIssue]
             tasks=self.tasks,  # pyright: ignore[reportAttributeAccessIssue]

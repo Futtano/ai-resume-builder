@@ -10,7 +10,12 @@ Uses a headless Chromium browser to fully render pages
 from __future__ import annotations
 
 import asyncio
+
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
+
+from resume_builder.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def scrape_job_url(url: str) -> str:
@@ -22,6 +27,7 @@ def scrape_job_url(url: str) -> str:
 
     Returns the extracted text, or raises RuntimeError on failure.
     """
+    logger.info("Scraping job posting: %s", url)
     browser_cfg = BrowserConfig(
         headless=True,
         verbose=False,
@@ -50,6 +56,7 @@ def scrape_job_url(url: str) -> str:
         if not text.strip():
             raise RuntimeError(f"No extractable content found at {url}")
 
+        logger.info("Scraped %d chars from %s", len(text), url)
         return text
 
     return asyncio.run(_run())

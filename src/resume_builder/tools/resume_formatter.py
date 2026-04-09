@@ -23,7 +23,10 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.shared import Inches, Pt, RGBColor
 
+from resume_builder.logger import get_logger
 from resume_builder.models import TailoredResume
+
+logger = get_logger(__name__)
 
 
 # ─────────────────────────────────────────────
@@ -52,6 +55,7 @@ class ResumeFormatterTool:
         Generate the .docx file and write it to output_dir.
         Returns the path to the created file.
         """
+        logger.info("Generating .docx for %s at %s", resume.job_title, resume.company)
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / resume.output_filename()
 
@@ -68,6 +72,7 @@ class ResumeFormatterTool:
             self._write_certifications(doc, resume)
 
         doc.save(str(output_path))
+        logger.info("Saved .docx to %s", output_path)
         return output_path
 
     # ------------------------------------------------------------------

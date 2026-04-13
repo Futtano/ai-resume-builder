@@ -66,6 +66,8 @@ class ResumeFormatterTool:
         self._write_header(doc, resume)
         self._write_summary(doc, resume)
         self._write_experience(doc, resume)
+        if resume.projects:
+            self._write_projects(doc, resume)
         self._write_skills(doc, resume)
         self._write_education(doc, resume)
         if resume.certifications:
@@ -152,6 +154,37 @@ class ResumeFormatterTool:
             for bullet in entry.bullets:
                 bullet_para = doc.add_paragraph(style="List Bullet")
                 bullet_para.add_run(bullet)
+
+    def _write_projects(self, doc: DocumentClass, resume: TailoredResume) -> None:
+        self._add_section_heading(doc, "Projects")
+
+        for proj in resume.projects:
+            # Project name line
+            proj_para = doc.add_paragraph()
+            role_run = proj_para.add_run(f"{proj.repo_name}")
+            role_run.bold = True
+            role_run.font.size = Pt(11)
+            role_run.font.color.rgb = HEADING_COLOR
+
+            # Description line
+            desc_para = doc.add_paragraph(proj.description)
+            for run in desc_para.runs:
+                run.font.size = Pt(10)
+                run.font.color.rgb = BODY_COLOR
+                run.italic = True
+
+            # Tech stack line
+            tech_line = "  ·  ".join(proj.tech_stack[:8])
+            if tech_line:
+                tech_para = doc.add_paragraph(f"Tech: {tech_line}")
+                for run in tech_para.runs:
+                    run.font.size = Pt(9.5)
+                    run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+
+            # Architecture bullet
+            if proj.architecture:
+                bullet_para = doc.add_paragraph(style="List Bullet")
+                bullet_para.add_run(proj.architecture)
 
     def _write_skills(self, doc: DocumentClass, resume: TailoredResume) -> None:
         self._add_section_heading(doc, "Skills")

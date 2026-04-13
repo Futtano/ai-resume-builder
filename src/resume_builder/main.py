@@ -84,6 +84,11 @@ def run(
         "--job-urls",
         help="One or more job posting URLs to scrape",
     ),
+    github_urls: Optional[list[str]] = typer.Option(
+        None,
+        "--github-urls",
+        help="One or more GitHub repository URLs to include as projects",
+    ),
     intro: str = typer.Option(
         "",
         "--intro",
@@ -198,6 +203,7 @@ def run(
             intro_brief=intro,
             output_dir=output_dir,
             on_progress=on_progress,
+            github_urls=github_urls,
         )
 
         try:

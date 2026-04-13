@@ -12,6 +12,7 @@ Pipeline steps:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -23,7 +24,9 @@ from resume_builder.config import settings
 from resume_builder.crew import ResumeBuilderCrew
 from resume_builder.logger import get_logger
 from resume_builder.models import ResumeBuilderState, TailoredResume
+from resume_builder.project_parser import parse_github_projects
 from resume_builder.resume_parser import parse_resume
+from resume_builder.tools.github_scraper import scrape_github_repos
 from resume_builder.tools.pdf_extractor import PDFExtractorTool
 from resume_builder.tools.resume_formatter import ResumeFormatterTool
 
@@ -43,6 +46,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         intro_brief: str = "",
         output_dir: Optional[Path] = None,
         on_progress: Optional[Callable[[str, int, int], None]] = None,
+        github_urls: Optional[list[str]] = None,
     ) -> None:
         super().__init__()
 
@@ -72,6 +76,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         self.state.intro_brief = intro_brief
         self.state.job_postings_raw = list(self._job_postings)
         self.state.total_jobs = len(self._job_postings)
+        self.state.github_urls = github_urls or []
 
     # -- Flow Steps --------------------------------------------------------
 
@@ -126,6 +131,35 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         )
 
     @listen(parse_resume_step)
+    def parse_github_projects_step(self) -> None:
+        """Step 2.5 (conditional): Scrape and parse GitHub repos if URLs provided."""
+        if not self.state.github_urls:
+            logger.debug("No GitHub URLs provided, skipping project parsing")
+            return
+
+        count = len(self.state.github_urls)
+        self._emit_progress(
+            f"Scraping {count} GitHub repo(s)...", 0, self.state.total_jobs,
+        )
+        logger.info("Scraping %d GitHub repo(s)", count)
+
+        # Step 1: Raw search
+        search_results = scrape_github_repos(self.state.github_urls)
+        logger.info("Raw search complete for %d repo(s)", len(search_results))
+
+        # Step 2: LLM parsing → structured ProjectEntry
+        projects = parse_github_projects(search_results)
+        self.state.parsed_projects = projects
+
+        self._emit_progress(
+            f"✓ {len(projects)} project(s) parsed from GitHub. "
+            f"Starting generations...",
+            0,
+            self.state.total_jobs,
+        )
+        logger.info("Parsed %d GitHub project(s)", len(projects))
+
+    @listen(parse_github_projects_step)
     def generate_tailored_resume(self) -> None:
         """Step 3: Run one 4-agent crew per job posting."""
         logger.info("Starting tailored resume generation for %d job(s)", self.state.total_jobs)
@@ -213,6 +247,14 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         inputs: dict = {
             "parsed_resume_json": parsed.model_dump_json(indent=2),
             "job_posting_raw": job_posting_raw,
+            "projects_json": (
+                json.dumps(
+                    [p.model_dump() for p in self.state.parsed_projects],
+                    indent=2,
+                )
+                if self.state.parsed_projects
+                else "[]"
+            ),
         }
 
         logger.debug("Kicking off crew for job %d", job_index)

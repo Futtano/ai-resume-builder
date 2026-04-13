@@ -87,6 +87,45 @@ class ParsedResume(BaseModel):
     totals_yoe: Optional[int] = Field(
         default=None, description="Estimated total years of professional experience"
     )
+    projects: list["ProjectEntry"] = Field(
+        default_factory=list,
+        description="GitHub projects parsed from the candidate's repositories",
+    )
+
+
+# ------------------------------------------------------------
+# GitHub project info (populated by the project scraper + parser agent)
+# ------------------------------------------------------------
+
+
+class ProjectEntry(BaseModel):
+    """
+    Structured representation of a GitHub project.
+    Produced by the project parser agent from raw GithubSearchTool output.
+    """
+
+    repo_name: str = Field(
+        description="GitHub repository name, e.g. 'owner/repo'"
+    )
+    repo_url: str = Field(
+        description="Full URL to the GitHub repository"
+    )
+    description: str = Field(
+        description="Short but comprehensive description of what the project does"
+    )
+    tech_stack: list[str] = Field(
+        description="Technologies, languages, and frameworks used"
+    )
+    architecture: str = Field(
+        description=(
+            "High-level explanation of how the project works: "
+            "information flow, how components interact, system design"
+        )
+    )
+    stars: int = Field(
+        default=0,
+        description="GitHub stars count",
+    )
 
 
 # ------------------------------------------------------------
@@ -255,6 +294,10 @@ class TailoredResume(BaseModel):
     certifications: list[str] = Field(
         default_factory=list, description="List of all certifications"
     )
+    projects: list[ProjectEntry] = Field(
+        default_factory=list,
+        description="GitHub projects selected for the tailored resume",
+    )
 
     # Quality metadata (not shown on resume)
     ats_keyword_coverage: list[str] = Field(
@@ -313,10 +356,18 @@ class ResumeBuilderState(BaseModel):
     job_postings_raw: list[str] = Field(
         default_factory=list, description="Raw text of each job posting"
     )
+    github_urls: list[str] = Field(
+        default_factory=list,
+        description="GitHub repository URLs provided by the user",
+    )
 
     # Populated during execution
     parsed_resume: Optional[ParsedResume] = Field(
         default=None, description="Structured model of the old resume"
+    )
+    parsed_projects: list[ProjectEntry] = Field(
+        default_factory=list,
+        description="Structured project entries from GitHub repos",
     )
     tailored_resumes: list[TailoredResume] = Field(
         default_factory=list,

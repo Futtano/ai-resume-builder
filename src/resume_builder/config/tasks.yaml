@@ -77,6 +77,10 @@ write_resume_task:
       ---
       {parsed_resume_json}
       ---
+    - GitHub projects (if available) as JSON:
+      ---
+      {projects_json}
+      ---
     - The structured job requirements (from context)
     - The tailoring strategy (from context)
 
@@ -98,15 +102,23 @@ write_resume_task:
     - Add ATS keywords naturally into bullet points where truthful
     - NEVER invent metrics, achievements, or responsibilities
 
+    PROJECTS (if projects_json is non-empty):
+    - Include 2–4 of the most relevant GitHub projects for this role
+    - For each project write 1–2 bullet points highlighting:
+      the tech stack, architecture decisions, and measurable impact
+    - Focus on projects that demonstrate skills the target job requires
+    - NEVER invent features, technologies, or metrics not in the source
+
     SKILLS:
     - Lead with the skills_to_emphasise from the strategy
+    - Include skills demonstrated in the GitHub projects where relevant
     - Include all required skills the candidate genuinely has
     - Omit skills marked for deprioritisation
     - Maximum 20 skills total
     - Group them logically (e.g. "Languages: Python, Go, SQL")
 
     QUALITY BAR:
-    - Every claim must be supported by the original resume
+    - Every claim must be supported by the original resume or project data
     - Respect all honest_constraints from the strategy
     - The resume must read as written by a human professional, not an AI
 

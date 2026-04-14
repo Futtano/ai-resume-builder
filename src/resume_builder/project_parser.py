@@ -11,7 +11,7 @@ response_format=list[ProjectEntry].
 
 from __future__ import annotations
 
-from dataclasses import asdict
+from pathlib import Path
 
 from crewai import Agent
 
@@ -21,6 +21,11 @@ from resume_builder.models import ProjectEntry
 from resume_builder.tools.github_scraper import RepoSearchResults
 
 logger = get_logger(__name__)
+
+# ---------------------------------------------------------------------------
+# Config path (relative to this file)
+# ---------------------------------------------------------------------------
+_PARSER_CONFIG_PATH = Path(__file__).parent / "config" / "github_parser_agent.yaml"
 
 
 def parse_github_projects(
@@ -41,17 +46,17 @@ def parse_github_projects(
     if not search_results:
         return []
 
+    import yaml
+
+    logger.debug(f"Loading GitHub parser from {_PARSER_CONFIG_PATH}")
+    cfg = yaml.safe_load(_PARSER_CONFIG_PATH.read_text(encoding="utf-8"))
+    agent_cfg = cfg["agent"]
+    task_cfg = cfg["task"]
+
     agent = Agent(
-        role="Technical Project Analyst",
-        goal="Analyze GitHub repository search results and extract structured project information for a resume.",
-        backstory=(
-            "You are a senior technical recruiter and engineering manager who has "
-            "reviewed thousands of GitHub portfolios. You can quickly identify the "
-            "most impressive aspects of a project: its purpose, the technology stack, "
-            "how the system is architected, and what makes it stand out. You never "
-            "invent information — if something isn't in the search results, you leave "
-            "it out rather than fabricating details."
-        ),
+        role=agent_cfg["role"],
+        goal=agent_cfg["goal"],
+        backstory=agent_cfg["backstory"],
         llm=settings.analyst_llm,
         verbose=settings.crewai_verbose,
         max_iter=3,
@@ -72,25 +77,14 @@ def parse_github_projects(
             logger.warning("No useful content found for %s, skipping", repo_name)
             continue
 
-        prompt = (
-            f"Analyze the following search results for the GitHub repository "
-            f"{repo_name} and extract structured project information.\n\n"
-            f"Return ONLY a JSON object with these fields:\n"
-            f"- repo_name: the repository name (e.g. 'owner/repo')\n"
-            f"- repo_url: the full URL to the repository\n"
-            f"- description: a short but comprehensive description of what the project does (2-3 sentences)\n"
-            f"- tech_stack: list of technologies, languages, and frameworks used\n"
-            f"- architecture: high-level explanation of how the project works — information flow, "
-            f"how components interact, system design (3-5 sentences)\n"
-            f"- stars: the GitHub stars count (integer, 0 if not found)\n\n"
-            f"Do NOT invent information. If a field cannot be determined from the "
-            f"search results, use an empty string for description/architecture, "
-            f"an empty list for tech_stack, and 0 for stars.\n\n"
-            f"--- Search Results for {repo_name} ---\n\n"
-            f"{chr(10).join(sections)}"
+        sections_str = "\n".join(sections)
+        prompt = task_cfg["description"].format(
+            repo_name=repo_name, sections_str=sections_str
         )
 
-        logger.info("Parsing project info for %s (model=%s)", repo_name, settings.analyst_model)
+        logger.info(
+            "Parsing project info for %s (model=%s)", repo_name, settings.analyst_model
+        )
 
         try:
             result_obj = agent.kickoff(prompt, response_format=ProjectEntry)

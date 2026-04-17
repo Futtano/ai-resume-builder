@@ -72,6 +72,14 @@ class ResumeFormatterTool:
         self._write_education(doc, resume)
         if resume.certifications:
             self._write_certifications(doc, resume)
+        if resume.publications:
+            self._write_publications(doc, resume)
+        if resume.workshops:
+            self._write_workshops(doc, resume)
+        if resume.awards:
+            self._write_awards(doc, resume)
+        if resume.international_experiences:
+            self._write_international_experiences(doc, resume)
 
         doc.save(str(output_path))
         logger.info("Saved .docx to %s", output_path)
@@ -213,6 +221,105 @@ class ResumeFormatterTool:
         for cert in resume.certifications:
             cert_para = doc.add_paragraph(style="List Bullet")
             cert_para.add_run(cert)
+
+    def _write_publications(self, doc: DocumentClass, resume: TailoredResume) -> None:
+        self._add_section_heading(doc, "Publications")
+        for pub in resume.publications:
+            # Title line
+            title_para = doc.add_paragraph()
+            title_run = title_para.add_run(pub.title)
+            title_run.bold = True
+            title_run.font.size = Pt(11)
+            title_run.font.color.rgb = HEADING_COLOR
+
+            # Venue + date line
+            venue_parts = [pub.venue]
+            if pub.date:
+                venue_parts.append(pub.date)
+            venue_line = "  —  ".join(venue_parts)
+            venue_para = doc.add_paragraph(venue_line)
+            for run in venue_para.runs:
+                run.font.size = Pt(10)
+                run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+
+            # Publisher if present
+            if pub.publisher:
+                pub_para = doc.add_paragraph(f"Publisher: {pub.publisher}")
+                for run in pub_para.runs:
+                    run.font.size = Pt(9.5)
+                    run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+
+            # Link if present
+            if pub.link:
+                link_para = doc.add_paragraph()
+                link_run = link_para.add_run(pub.link)
+                link_run.font.size = Pt(9)
+                link_run.font.color.rgb = RGBColor(0x16, 0x47, 0x7D)
+
+    def _write_workshops(self, doc: DocumentClass, resume: TailoredResume) -> None:
+        self._add_section_heading(doc, "Workshops")
+        for ws in resume.workshops:
+            # Title line
+            title_para = doc.add_paragraph()
+            title_run = title_para.add_run(ws.title)
+            title_run.bold = True
+            title_run.font.size = Pt(11)
+            title_run.font.color.rgb = HEADING_COLOR
+
+            # Date + place line
+            detail_parts = []
+            if ws.date:
+                detail_parts.append(ws.date)
+            if ws.place:
+                detail_parts.append(ws.place)
+            detail_para = doc.add_paragraph("  ·  ".join(detail_parts))
+            for run in detail_para.runs:
+                run.font.size = Pt(10)
+                run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+                run.italic = True
+
+    def _write_awards(self, doc: DocumentClass, resume: TailoredResume) -> None:
+        self._add_section_heading(doc, "Awards")
+        for award in resume.awards:
+            # Title line
+            title_para = doc.add_paragraph()
+            title_run = title_para.add_run(award.title)
+            title_run.bold = True
+            title_run.font.size = Pt(11)
+            title_run.font.color.rgb = HEADING_COLOR
+
+            # Organization + date line
+            org_parts = [award.organization]
+            if award.date:
+                org_parts.append(award.date)
+            org_para = doc.add_paragraph("  —  ".join(org_parts))
+            for run in org_para.runs:
+                run.font.size = Pt(10)
+                run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+
+    def _write_international_experiences(self, doc: DocumentClass, resume: TailoredResume) -> None:
+        self._add_section_heading(doc, "International Experiences")
+        for exp in resume.international_experiences:
+            # Place line
+            place_para = doc.add_paragraph()
+            place_run = place_para.add_run(exp.place)
+            place_run.bold = True
+            place_run.font.size = Pt(11)
+            place_run.font.color.rgb = HEADING_COLOR
+
+            # Date line
+            if exp.date:
+                date_para = doc.add_paragraph(exp.date)
+                for run in date_para.runs:
+                    run.font.size = Pt(9.5)
+                    run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+                    run.italic = True
+
+            # Description
+            desc_para = doc.add_paragraph(exp.description)
+            for run in desc_para.runs:
+                run.font.size = Pt(10)
+                run.font.color.rgb = BODY_COLOR
 
     # ------------------------------------------------------------------
     # Helpers

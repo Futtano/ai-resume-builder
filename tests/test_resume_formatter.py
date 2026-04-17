@@ -11,10 +11,14 @@ from pathlib import Path
 from docx import Document
 
 from resume_builder.models import (
+    AwardEntry,
     ContactInfo,
     EducationEntry,
+    InternationalExperienceEntry,
+    PublicationEntry,
     TailoredExperienceEntry,
     TailoredResume,
+    WorkshopEntry,
 )
 from resume_builder.tools.resume_formatter import ResumeFormatterTool
 
@@ -101,3 +105,102 @@ class TestResumeFormatter:
         full_text = " ".join(p.text for p in doc.paragraphs)
         assert "CERTIFICATIONS" in full_text.upper()
         assert "AWS Solutions Architect" in full_text
+
+    def test_with_publications(self, tmp_dir: Path) -> None:
+        resume = self._make_resume()
+        resume.publications = [
+            PublicationEntry(
+                title="Attention Is All You Need",
+                venue="NeurIPS 2017",
+                date="Jun 2017",
+                publisher="Curran Associates",
+                link="https://arxiv.org/abs/1706.03762",
+            )
+        ]
+        path = self.formatter.generate(resume, output_dir=tmp_dir)
+
+        doc = Document(str(path))
+        full_text = " ".join(p.text for p in doc.paragraphs)
+        assert "PUBLICATIONS" in full_text.upper()
+        assert "Attention Is All You Need" in full_text
+        assert "NeurIPS 2017" in full_text
+        assert "arxiv" in full_text
+
+    def test_with_workshops(self, tmp_dir: Path) -> None:
+        resume = self._make_resume()
+        resume.workshops = [
+            WorkshopEntry(
+                title="MLOps Best Practices",
+                date="Mar 2023",
+                place="Milan, Italy",
+            )
+        ]
+        path = self.formatter.generate(resume, output_dir=tmp_dir)
+
+        doc = Document(str(path))
+        full_text = " ".join(p.text for p in doc.paragraphs)
+        assert "WORKSHOPS" in full_text.upper()
+        assert "MLOps Best Practices" in full_text
+
+    def test_with_awards(self, tmp_dir: Path) -> None:
+        resume = self._make_resume()
+        resume.awards = [
+            AwardEntry(
+                title="Best Paper Award",
+                organization="IEEE",
+                date="Dec 2022",
+            )
+        ]
+        path = self.formatter.generate(resume, output_dir=tmp_dir)
+
+        doc = Document(str(path))
+        full_text = " ".join(p.text for p in doc.paragraphs)
+        assert "AWARDS" in full_text.upper()
+        assert "Best Paper Award" in full_text
+        assert "IEEE" in full_text
+
+    def test_with_international_experiences(self, tmp_dir: Path) -> None:
+        resume = self._make_resume()
+        resume.international_experiences = [
+            InternationalExperienceEntry(
+                place="Tokyo, Japan",
+                date="Sep 2021 – Jun 2022",
+                description="Exchange semester at University of Tokyo",
+            )
+        ]
+        path = self.formatter.generate(resume, output_dir=tmp_dir)
+
+        doc = Document(str(path))
+        full_text = " ".join(p.text for p in doc.paragraphs)
+        assert "INTERNATIONAL EXPERIENCES" in full_text.upper()
+        assert "Tokyo, Japan" in full_text
+        assert "Exchange semester" in full_text
+
+    def test_all_sections_together(self, tmp_dir: Path) -> None:
+        resume = self._make_resume()
+        resume.publications = [
+            PublicationEntry(
+                title="Test Paper",
+                venue="ICML 2023",
+                date="Jul 2023",
+            )
+        ]
+        resume.workshops = [
+            WorkshopEntry(title="K8s Workshop", date="2022", place="Berlin")
+        ]
+        resume.awards = [
+            AwardEntry(title="Innovation Award", organization="ACM", date="2021")
+        ]
+        resume.international_experiences = [
+            InternationalExperienceEntry(
+                place="Paris, France",
+                date="2020",
+                description="Research internship at INRIA",
+            )
+        ]
+        path = self.formatter.generate(resume, output_dir=tmp_dir)
+
+        doc = Document(str(path))
+        full_text = " ".join(p.text for p in doc.paragraphs)
+        for section in ["PUBLICATIONS", "WORKSHOPS", "AWARDS", "INTERNATIONAL EXPERIENCES"]:
+            assert section in full_text.upper()

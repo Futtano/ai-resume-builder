@@ -49,7 +49,20 @@ task:
     5. Estimate the total years of experience by summing the duration of all roles.
        The total MUST be an integer number.
     6. Include the full raw_text field in your output.
+    7. Extract ALL publications — for each, capture the title, venue (conference/journal),
+       publisher, date, and link (URL or DOI). Return empty list if none found.
+    8. Extract ALL workshop participations — for each, capture the title, date, and place.
+       Return empty list if none found.
+    9. Extract ALL awards and recognitions — for each, capture the title, organization,
+       and date. Return empty list if none found.
+    10. Extract ALL international experiences (study abroad, work exchanges, etc.) —
+        for each, capture the place, date/period, and a brief description.
+        Return empty list if none found.
+    11. NEVER fabricate entries for publications, workshops, awards, or international
+        experiences. Only extract what is explicitly stated in the resume.
 
   expected_output: >
     A fully structured ParsedResume object with all fields populated.
     Every section of the resume must be represented. No information should be lost.
+    The publications, workshops, awards, and international_experiences lists must
+    contain all entries found in the resume, or be empty lists if none exist.

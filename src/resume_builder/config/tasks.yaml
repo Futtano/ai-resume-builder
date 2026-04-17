@@ -117,6 +117,27 @@ write_resume_task:
     - Maximum 20 skills total
     - Group them logically (e.g. "Languages: Python, Go, SQL")
 
+    PUBLICATIONS:
+    - Include publications that are relevant to the target role or industry
+    - Prioritise recent and high-impact publications
+    - Preserve the title, venue, date, publisher, and link for each
+    - Limit to the most relevant 5-10 if the candidate has many
+
+    WORKSHOPS:
+    - Include workshops that demonstrate continuous learning relevant to the role
+    - Prioritise recent workshops and those aligned with required skills
+    - Preserve the title, date, and place for each
+
+    AWARDS:
+    - Include all awards — they are always valuable for credibility
+    - Preserve the title, organization, and date for each
+    - Order by date (most recent first)
+
+    INTERNATIONAL EXPERIENCES:
+    - Include all international experiences — they demonstrate adaptability
+    - Preserve the place, date, and description for each
+    - Highlight any cross-cultural or international collaboration skills
+
     QUALITY BAR:
     - Every claim must be supported by the original resume or project data
     - Respect all honest_constraints from the strategy
@@ -166,6 +187,13 @@ review_resume_task:
     □ Are dates formatted consistently throughout?
     □ Are bullet points grammatically parallel?
     □ Is the skills list free of duplicates?
+
+    ADDITIONAL SECTIONS:
+    □ Are publications formatted correctly with title, venue, date, and link?
+    □ Are workshops listed with title, date, and place?
+    □ Are awards listed with title, organization, and date?
+    □ Are international experiences included with place, date, and description?
+    □ Do all entries in these sections match the original parsed resume data?
 
     Your output is the FINAL, polished TailoredResume object. Make targeted
     improvements where the criteria above are not met. Update the confidence_score

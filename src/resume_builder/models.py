@@ -3,7 +3,6 @@ This module groups together Pydantic interfaces for communications
 between agents
 """
 
-from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 # ------------------------------------------------------------
@@ -16,13 +15,13 @@ class ContactInfo(BaseModel):
     """Structured contact details"""
 
     name: str = Field(description="Full name of the candidate")
-    email: Optional[str] = Field(default=None, description="Email address")
-    phone: Optional[str] = Field(default=None, description="Phone number")
-    location: Optional[str] = Field(default=None, description="City, country or region")
-    linkedin: Optional[str] = Field(default=None, description="LinkedIn profile URL")
-    github: Optional[str] = Field(default=None, description="GitHub profile URL")
-    portfolio: Optional[str] = Field(
-        default=None, description="Personal website or portfolio URL"
+    email: str = Field(default="", description="Email address")
+    phone: str = Field(default="", description="Phone number")
+    location: str = Field(default="", description="City, country or region")
+    linkedin: str = Field(default="", description="LinkedIn profile URL")
+    github: str = Field(default="", description="GitHub profile URL")
+    portfolio: str = Field(
+        default="", description="Personal website or portfolio URL"
     )
 
 
@@ -33,7 +32,7 @@ class ExperienceEntry(BaseModel):
     role: str = Field(description="Job title or role")
     start_date: str = Field(description="Start date, e.g. Jan 2021 or 2021")
     end_date: str = Field(description="End date, e.g. Jan 2021 or 2021")
-    location: Optional[str] = Field(default=None, description="Job location")
+    location: str = Field(default="", description="Job location")
     bullets: list[str] = Field(
         description="Bullet points describing responsibilities and achievements"
     )
@@ -51,8 +50,42 @@ class EducationEntry(BaseModel):
     field_of_study: str = Field(description="Field of study")
     start_date: str = Field(description="Start date, e.g. Jan 2021 or 2021")
     end_date: str = Field(description="Start date, e.g. Jan 2021 or 2021")
-    degree_mark: Optional[str] = Field(default=None, description="Final degree mark")
-    honours: Optional[str] = Field(default=None, description="Honours")
+    degree_mark: str = Field(default="", description="Final degree mark")
+    honours: str = Field(default="", description="Honours")
+
+
+class PublicationEntry(BaseModel):
+    """Single academic/scientific publication"""
+
+    title: str = Field(description="Title of the publication")
+    venue: str = Field(description="Conference, journal, or publisher name")
+    date: str = Field(description="Publication date, e.g. Mar 2023 or 2023")
+    publisher: str = Field(default="", description="Publisher or organization")
+    link: str = Field(default="", description="URL or DOI link to the publication")
+
+
+class WorkshopEntry(BaseModel):
+    """Single workshop participation"""
+
+    title: str = Field(description="Title of the workshop")
+    date: str = Field(description="Workshop date, e.g. Jun 2022 or 2022")
+    place: str = Field(description="Location or institution where the workshop was held")
+
+
+class AwardEntry(BaseModel):
+    """Single award or recognition"""
+
+    title: str = Field(description="Title of the award or recognition")
+    organization: str = Field(description="Organization or institution that granted the award")
+    date: str = Field(description="Date the award was received, e.g. Dec 2021 or 2021")
+
+
+class InternationalExperienceEntry(BaseModel):
+    """Single international experience (study abroad, work exchange, etc.)"""
+
+    place: str = Field(description="Country, city, or institution abroad")
+    date: str = Field(description="Date or period of the experience, e.g. Sep 2020 – Jun 2021")
+    description: str = Field(description="Brief description of the experience")
 
 
 # ------------------------------------------------------------
@@ -67,8 +100,8 @@ class ParsedResume(BaseModel):
     """
 
     contact: ContactInfo = Field(description="Candidate's contact information")
-    professional_summary: Optional[str] = Field(
-        default=None,
+    professional_summary: str = Field(
+        default="",
         description="Original, verbatim or lightly cleaned professional summary of the candidate",
     )
     experience: list[ExperienceEntry] = Field(
@@ -78,18 +111,34 @@ class ParsedResume(BaseModel):
     education: list[EducationEntry] = Field(
         description="Diplomas, degrees mentioned in the original resume"
     )
-    certifications: Optional[list[str]] = Field(
-        default=None, description="List of all certifications"
+    certifications: list[str] = Field(
+        default_factory=list, description="List of all certifications"
     )
     raw_text: str = Field(
         description="Full raw text of the old resume, preserved as a reference"
     )  # always put this as a fallback
-    totals_yoe: Optional[int] = Field(
-        default=None, description="Estimated total years of professional experience"
+    totals_yoe: int = Field(
+        default=0, description="Estimated total years of professional experience"
     )
     projects: list["ProjectEntry"] = Field(
         default_factory=list,
         description="GitHub projects parsed from the candidate's repositories",
+    )
+    publications: list["PublicationEntry"] = Field(
+        default_factory=list,
+        description="Academic or scientific publications",
+    )
+    workshops: list["WorkshopEntry"] = Field(
+        default_factory=list,
+        description="Workshop participations",
+    )
+    awards: list["AwardEntry"] = Field(
+        default_factory=list,
+        description="Awards and recognitions",
+    )
+    international_experiences: list["InternationalExperienceEntry"] = Field(
+        default_factory=list,
+        description="International experiences (study abroad, work exchanges, etc.)",
     )
 
 
@@ -160,12 +209,12 @@ class JobRequirements(BaseModel):
             "Exact strings from the posting."
         )
     )
-    industry: Optional[str] = Field(default=None, description="Industry sector")
-    team_size: Optional[str] = Field(
-        default=None, description="Team or company size if mentioned"
+    industry: str = Field(default="", description="Industry sector")
+    team_size: str = Field(
+        default="", description="Team or company size if mentioned"
     )
-    remote_policy: Optional[str] = Field(
-        default=None, description="e.g. 'Remote', 'Hybrid', 'On-site'"
+    remote_policy: str = Field(
+        default="", description="e.g. 'Remote', 'Hybrid', 'On-site'"
     )
     raw_posting: str = Field(description="Full raw text of the job posting")
 
@@ -236,7 +285,7 @@ class TailoredExperienceEntry(BaseModel):
     role: str = Field(description="Job title or role")
     start_date: str = Field(description="Start date, e.g. Jan 2021 or 2021")
     end_date: str = Field(description="End date, e.g. Jan 2021 or 2021")
-    location: Optional[str] = Field(default=None, description="Job location")
+    location: str = Field(default="", description="Job location")
     bullets: list[str] = Field(
         description=(
             "3-6 rewritten achievement-oriented bullet points. "
@@ -297,6 +346,22 @@ class TailoredResume(BaseModel):
     projects: list[ProjectEntry] = Field(
         default_factory=list,
         description="GitHub projects selected for the tailored resume",
+    )
+    publications: list[PublicationEntry] = Field(
+        default_factory=list,
+        description="Publications selected for the tailored resume",
+    )
+    workshops: list[WorkshopEntry] = Field(
+        default_factory=list,
+        description="Workshop participations selected for the tailored resume",
+    )
+    awards: list[AwardEntry] = Field(
+        default_factory=list,
+        description="Awards and recognitions selected for the tailored resume",
+    )
+    international_experiences: list[InternationalExperienceEntry] = Field(
+        default_factory=list,
+        description="International experiences selected for the tailored resume",
     )
 
     # Quality metadata (not shown on resume)
@@ -362,7 +427,7 @@ class ResumeBuilderState(BaseModel):
     )
 
     # Populated during execution
-    parsed_resume: Optional[ParsedResume] = Field(
+    parsed_resume: ParsedResume | None = Field(
         default=None, description="Structured model of the old resume"
     )
     parsed_projects: list[ProjectEntry] = Field(

@@ -20,9 +20,7 @@ class ContactInfo(BaseModel):
     location: str = Field(default="", description="City, country or region")
     linkedin: str = Field(default="", description="LinkedIn profile URL")
     github: str = Field(default="", description="GitHub profile URL")
-    portfolio: str = Field(
-        default="", description="Personal website or portfolio URL"
-    )
+    portfolio: str = Field(default="", description="Personal website or portfolio URL")
 
 
 class ExperienceEntry(BaseModel):
@@ -69,14 +67,18 @@ class WorkshopEntry(BaseModel):
 
     title: str = Field(description="Title of the workshop")
     date: str = Field(description="Workshop date, e.g. Jun 2022 or 2022")
-    place: str = Field(description="Location or institution where the workshop was held")
+    place: str = Field(
+        description="Location or institution where the workshop was held"
+    )
 
 
 class AwardEntry(BaseModel):
     """Single award or recognition"""
 
     title: str = Field(description="Title of the award or recognition")
-    organization: str = Field(description="Organization or institution that granted the award")
+    organization: str = Field(
+        description="Organization or institution that granted the award"
+    )
     date: str = Field(description="Date the award was received, e.g. Dec 2021 or 2021")
 
 
@@ -84,7 +86,9 @@ class InternationalExperienceEntry(BaseModel):
     """Single international experience (study abroad, work exchange, etc.)"""
 
     place: str = Field(description="Country, city, or institution abroad")
-    date: str = Field(description="Date or period of the experience, e.g. Sep 2020 – Jun 2021")
+    date: str = Field(
+        description="Date or period of the experience, e.g. Sep 2020 – Jun 2021"
+    )
     description: str = Field(description="Brief description of the experience")
 
 
@@ -153,12 +157,8 @@ class ProjectEntry(BaseModel):
     Produced by the project parser agent from raw GithubSearchTool output.
     """
 
-    repo_name: str = Field(
-        description="GitHub repository name, e.g. 'owner/repo'"
-    )
-    repo_url: str = Field(
-        description="Full URL to the GitHub repository"
-    )
+    repo_name: str = Field(description="GitHub repository name, e.g. 'owner/repo'")
+    repo_url: str = Field(description="Full URL to the GitHub repository")
     description: str = Field(
         description="Short but comprehensive description of what the project does"
     )
@@ -210,9 +210,7 @@ class JobRequirements(BaseModel):
         )
     )
     industry: str = Field(default="", description="Industry sector")
-    team_size: str = Field(
-        default="", description="Team or company size if mentioned"
-    )
+    team_size: str = Field(default="", description="Team or company size if mentioned")
     remote_policy: str = Field(
         default="", description="e.g. 'Remote', 'Hybrid', 'On-site'"
     )
@@ -421,7 +419,7 @@ class ResumeBuilderState(BaseModel):
     job_postings_raw: list[str] = Field(
         default_factory=list, description="Raw text of each job posting"
     )
-    github_urls: list[str] = Field(
+    github_repos: list[str] = Field(
         default_factory=list,
         description="GitHub repository URLs provided by the user",
     )

@@ -26,7 +26,7 @@ from resume_builder.logger import get_logger
 from resume_builder.models import ResumeBuilderState, TailoredResume
 from resume_builder.project_parser import parse_github_projects
 from resume_builder.resume_parser import parse_resume
-from resume_builder.tools.github_scraper import scrape_github_repos
+from resume_builder.tools.github_scraper import GitHubScraper
 from resume_builder.tools.pdf_extractor import PDFExtractorTool
 from resume_builder.tools.resume_formatter import ResumeFormatterTool
 
@@ -46,7 +46,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         intro_brief: str = "",
         output_dir: Optional[Path] = None,
         on_progress: Optional[Callable[[str, int, int], None]] = None,
-        github_urls: Optional[list[str]] = None,
+        github_repos: Optional[list[str]] = None,
     ) -> None:
         super().__init__()
 
@@ -58,8 +58,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
             )
         if resume_pdf_path is None and resume_text is None:
             raise ValueError(
-                "Provide exactly one resume source: "
-                "resume_pdf_path or resume_text"
+                "Provide exactly one resume source: resume_pdf_path or resume_text"
             )
 
         # ── At least one job posting ────────────────────────────────
@@ -76,7 +75,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         self.state.intro_brief = intro_brief
         self.state.job_postings_raw = list(self._job_postings)
         self.state.total_jobs = len(self._job_postings)
-        self.state.github_urls = github_urls or []
+        self.state.github_repos = github_repos or []
 
     # -- Flow Steps --------------------------------------------------------
 
@@ -133,18 +132,20 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
     @listen(parse_resume_step)
     def parse_github_projects_step(self) -> None:
         """Step 2.5 (conditional): Scrape and parse GitHub repos if URLs provided."""
-        if not self.state.github_urls:
+        if not self.state.github_repos:
             logger.debug("No GitHub URLs provided, skipping project parsing")
             return
 
-        count = len(self.state.github_urls)
+        count = len(self.state.github_repos)
         self._emit_progress(
-            f"Scraping {count} GitHub repo(s)...", 0, self.state.total_jobs,
+            f"Scraping {count} GitHub repo(s)...",
+            0,
+            self.state.total_jobs,
         )
         logger.info("Scraping %d GitHub repo(s)", count)
 
         # Step 1: Raw search
-        search_results = scrape_github_repos(self.state.github_urls)
+        search_results = GitHubScraper().scrape_repos(repos=self.state.github_repos)
         logger.info("Raw search complete for %d repo(s)", len(search_results))
 
         # Step 2: LLM parsing → structured ProjectEntry
@@ -152,8 +153,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         self.state.parsed_projects = projects
 
         self._emit_progress(
-            f"✓ {len(projects)} project(s) parsed from GitHub. "
-            f"Starting generations...",
+            f"✓ {len(projects)} project(s) parsed from GitHub. Starting generations...",
             0,
             self.state.total_jobs,
         )
@@ -162,7 +162,9 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
     @listen(parse_github_projects_step)
     def generate_tailored_resume(self) -> None:
         """Step 3: Run one 4-agent crew per job posting."""
-        logger.info("Starting tailored resume generation for %d job(s)", self.state.total_jobs)
+        logger.info(
+            "Starting tailored resume generation for %d job(s)", self.state.total_jobs
+        )
         for (
             index,
             job_posting_raw,
@@ -178,7 +180,10 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 
                 logger.info(
                     "✓ %s complete — %s at %s (confidence: %d%%)",
-                    label, resume.job_title, resume.company, resume.confidence_score,
+                    label,
+                    resume.job_title,
+                    resume.company,
+                    resume.confidence_score,
                 )
                 self._emit_progress(
                     f"✓ {label} complete -- {resume.job_title} at {resume.company} "

@@ -87,6 +87,12 @@ class Settings(BaseSettings):
         description="Base delay (seconds) for exponential backoff on LLM retries",
     )
 
+    # ── API Keys ────────────────────────────────────────────────────
+    gh_token: str | None = Field(
+        default=None,
+        description="Token authenticate with the GitHub API (to scrape projects)",
+    )
+
     @field_validator("output_dir", mode="before")
     @classmethod
     def resolve_output_dir(cls, v: object) -> Path:

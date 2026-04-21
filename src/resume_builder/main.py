@@ -1,36 +1,12 @@
 """
 main.py
 -------
-CLI entry point for the Resume Builder.
-
-Usage:
-    # Basic - resume PDF + one or more job posting files
-    resume-builder run \\
-        --resume inputs/my_resume.pdf \\
-        --jobs inputs/job1.txt inputs/job2.txt \\
-        --intro "I am a backend engineer looking to move \\
-            into platform engineering"
-
-    # With a directory of job posting
-    resume-builder run \\
-        --resume inputs/my_resume.pdf \\
-        --jobs-dir inputs/jobs/ \\
-        --intro "..."
-
-    # With job posting URLs
-    resume-builder run \\
-        --resume inputs/my_resume.pdf \\
-        --job-urls "https://example.com/job1" "https://example.com/job2" \\
-        --intro "..."
-
-    # Verbose mode (show agent thinking)
-    CREWAI_VERBOSE=true resume-builder run ...
+CLI entry point for the application.
 """
 
 from __future__ import annotations
 import os
 from pathlib import Path
-from typing import Optional
 
 import typer
 from dotenv import load_dotenv
@@ -67,26 +43,26 @@ def run(
         file_okay=True,
         dir_okay=False,
     ),
-    jobs: Optional[list[Path]] = typer.Option(
+    jobs: list[Path] | None = typer.Option(
         None,
         "--jobs",
         "-j",
         help="One or more job posting .txt files",
     ),
-    jobs_dir: Optional[Path] = typer.Option(
+    jobs_dir: Path | None = typer.Option(
         None,
         "--jobs-dir",
-        help="Directory of .txt job posting files (alternative to --jobs)",
+        help="Directory of job posting files (alternative to --jobs)",
         exists=True,
     ),
-    job_urls: Optional[list[str]] = typer.Option(
+    job_urls: list[str] | None = typer.Option(
         None,
         "--job-urls",
         help="One or more job posting URLs to scrape",
     ),
-    github_urls: Optional[list[str]] = typer.Option(
+    github_repos: list[str] | None = typer.Option(
         None,
-        "--github-urls",
+        "--github-repos",
         help="One or more GitHub repository URLs to include as projects",
     ),
     intro: str = typer.Option(
@@ -203,7 +179,7 @@ def run(
             intro_brief=intro,
             output_dir=output_dir,
             on_progress=on_progress,
-            github_urls=github_urls,
+            github_repos=github_repos,
         )
 
         try:

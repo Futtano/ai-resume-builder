@@ -1,161 +1,125 @@
 """
 github_scraper.py
 -----------------
-GitHub repository scraper using CrewAI's GithubSearchTool.
+GitHub repository scraper.
 
 Given a list of GitHub repo URLs, searches each repo for:
 - README content (description, features, usage)
 - Dependency files (requirements.txt, pyproject.toml, package.json, etc.)
-- Architecture/design docs
-- CI/CD and infrastructure configs
 
 Returns raw search results for a downstream LLM agent to structure.
 """
 
-from __future__ import annotations
-
-import re
+# import os
+import requests
+import base64
 from dataclasses import dataclass, field
 
-from crewai_tools import GithubSearchTool
-
-from resume_builder.config import settings
 from resume_builder.logger import get_logger
+from resume_builder.config import settings
 
 logger = get_logger(__name__)
 
-# Queries run against each repo to gather comprehensive context.
-# Each query targets a different aspect of the project.
-_REPO_QUERIES = [
-    "README project description features overview usage",
-    "requirements.txt pyproject.toml package.json go.mod Cargo.toml dependencies",
-    "Dockerfile docker-compose docker infrastructure deployment",
-    "architecture design how it works structure components",
-    "API endpoints routes controllers services handlers",
-    "CI CD GitHub Actions workflow pipeline tests Makefile",
-]
-
 
 @dataclass
-class RepoSearchResults:
+class RepoScrapeResult:
     """Raw search results for a single GitHub repository."""
 
-    repo_name: str  # e.g. "owner/repo"
+    repo: str  # e.g. "owner/repo"
     queries: dict[str, str] = field(default_factory=dict)
 
 
-def _parse_github_url(url: str) -> str:
-    """Normalize a GitHub URL to the canonical repo URL.
+class GitHubScraper:
+    """Scrape projects info using GitHub APIs"""
 
-    Handles:
-        https://github.com/owner/repo
-        https://github.com/owner/repo/
-        https://github.com/owner/repo/tree/main
-        git@github.com:owner/repo.git
-    """
-    url = url.rstrip("/")
+    def __init__(self) -> None:
+        self._scraped: list[RepoScrapeResult] = []
 
-    # Standard HTTPS — strip any trailing path segments
-    match = re.search(r"(https://github\.com/[^/]+/[^/]+?)(?:/|$)", url)
-    if match:
-        return match.group(1)
+    @property
+    def scraped(self) -> list[RepoScrapeResult]:
+        return self._scraped
 
-    # SSH style → convert to HTTPS
-    match = re.search(r"github\.com:([^/]+)/([^/]+?)(?:\.git)?$", url)
-    if match:
-        return f"https://github.com/{match.group(1)}/{match.group(2)}"
+    def get_branch_files(self, repo: str, branch: str = "main") -> str:
+        files = ""
+        url = f"https://api.github.com/repos/{repo}/git/trees/{branch}?recursive=1"
+        response = self._fetch_gh_api(url=url)
+        if response:
+            if response.status_code == 200:
+                data = response.json()
+                files = " ".join(
+                    [
+                        item["path"]
+                        for item in data.get("tree", [])
+                        if item["type"] == "blob"
+                    ]
+                )
+                self._add_scraped(repo=repo, queries={f"{branch}/files": files})
+            else:
+                logger.warning(
+                    f"GitHub API respondend with {response.status_code} status_code. Returning empty file list."
+                )
+        else:
+            logger.error("Invalid response from GitHub API. Returning empty file list.")
 
-    raise ValueError(f"Not a valid GitHub repository URL: {url}")
+        return files
+
+    def get_file_content(self, repo: str, file_path: str) -> str:
+        url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
+        response = self._fetch_gh_api(url=url)
+        content = ""
+        if response:
+            if response.status_code == 200:
+                data = response.json()
+                content = base64.b64decode(data["content"]).decode("utf-8")
+                self._add_scraped(repo=repo, queries={f"{file_path}/content": content})
+            else:
+                logger.warning(
+                    f"GitHub API respondend with {response.status_code} status_code. Returning empty string."
+                )
+        else:
+            logger.error("Invalid response from GitHub API. Returning empty string.")
+        return content
+
+    def scrape_repos(
+        self, repos: list[str], files: list[str] = ["README.md", "pyproject.toml"]
+    ) -> list[RepoScrapeResult]:
+        for repo in repos:
+            for file in files:
+                self.get_file_content(repo=repo, file_path=file)
+        return self.scraped
+
+    def _fetch_gh_api(self, url: str) -> requests.Response | None:
+
+        try:
+            response = requests.get(
+                url,
+                headers={
+                    "Accept": "application/vnd.github+json",
+                    "Authorization": f"Bearer {settings.gh_token}",
+                },
+            )
+            return response
+        except Exception as e:
+            logger.error(f"Error while fetching GitHub API: {str(e)}")
+
+    def _add_scraped(self, repo: str, queries: dict[str, str]) -> None:
+        for scrape_result in self._scraped:
+            if repo == scrape_result.repo:
+                scrape_result.queries.update(queries)
+                break
+        else:
+            self._scraped.append(RepoScrapeResult(repo=repo, queries=queries))
 
 
-def _build_tool_config() -> dict:
-    """Build GithubSearchTool config using project settings.
+if __name__ == "__main__":
+    scraper = GitHubScraper()
+    scraper.scrape_repos(repos=["Futtano/ames-mlproject", "Futtano/ai-resume-builder"])
+    # pprint(f"{scraper}: returned {files}")
+    # pprint(f"{scraper}: returned {readme_content}")
 
-    - LLM: uses the analyst model via the configured OpenAI-compatible endpoint
-    - Embedder: uses local Ollama with nomic-embed-text for embeddings
-    """
-    return dict(
-        llm=dict(
-            provider="openai",
-            config=dict(
-                model=settings.analyst_model,
-                api_base=settings.llm_base_url,
-            ),
-        ),
-        embedding_model=dict(
-            provider="ollama",
-            config=dict(
-                model_name=settings.embedding_model or "nomic-embed-text:latest",
-                base_url=settings.embedding_base_url or "http://localhost:11434",
-            ),
-        ),
+    print(
+        f"len(scraped): {len(scraper.scraped)}",
+        f"len(scraped[0].queries): {len(scraper.scraped[0].queries)}",
+        f"keys of scraped[0].queries: {scraper.scraped[0].queries.keys()}",
+        sep="\n",
     )
-
-
-def scrape_github_repos(
-    repo_urls: list[str],
-    gh_token: str = "",
-) -> list[RepoSearchResults]:
-    """
-    Scrape multiple GitHub repos using semantic search.
-
-    For each repo, runs several queries via GithubSearchTool
-    to gather README content, dependency files, architecture docs, etc.
-
-    Public repos work without a GitHub token (empty string is fine).
-
-    Args:
-        repo_urls: List of GitHub repository URLs.
-        gh_token: GitHub Personal Access Token (empty for public repos).
-
-    Returns:
-        A list of RepoSearchResults, one per repo.
-    """
-    logger.info("Scraping %d GitHub repo(s)", len(repo_urls))
-    tool_config = _build_tool_config()
-    results: list[RepoSearchResults] = []
-
-    for url in repo_urls:
-        repo_url = _parse_github_url(url)
-        # Extract owner/repo for logging
-        match = re.search(r"github\.com/([^/]+/[^/]+?)(?:/|$)", repo_url)
-        repo_name = match.group(1) if match else repo_url
-        logger.info("Scraping repo: %s", repo_name)
-
-        queries: dict[str, str] = {}
-
-        for query in _REPO_QUERIES:
-            try:
-                tool = GithubSearchTool(
-                    github_repo=repo_url,
-                    gh_token=gh_token,
-                    content_types=["code", "repo"],
-                    collection_name=f"{settings.embedding_model}-collection",
-                    config=tool_config,
-                )
-                search_result = tool._run(
-                    search_query=query,
-                    github_repo=repo_url,
-                    content_types=["code", "repo"],
-                    limit=5,
-                )
-                queries[query] = search_result or ""
-                logger.debug(
-                    "Query '%s' returned %d chars",
-                    query,
-                    len(search_result or ""),
-                )
-            except Exception as exc:
-                logger.warning("Query '%s' failed for %s: %s", query, repo_name, exc)
-                queries[query] = ""
-
-        total_chars = sum(len(v) for v in queries.values())
-        logger.info(
-            "Scraped %s: %d chars across %d queries",
-            repo_name,
-            total_chars,
-            len(queries),
-        )
-        results.append(RepoSearchResults(repo_name=repo_name, queries=queries))
-
-    return results

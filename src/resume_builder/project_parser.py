@@ -10,6 +10,7 @@ response_format=list[ProjectEntry].
 """
 
 from __future__ import annotations
+from pprint import pprint
 
 from pathlib import Path
 
@@ -18,7 +19,7 @@ from crewai import Agent
 from resume_builder.config import settings
 from resume_builder.logger import get_logger
 from resume_builder.models import ProjectEntry
-from resume_builder.tools.github_scraper import RepoSearchResults
+from resume_builder.tools.github_scraper import GitHubScraper, RepoScrapeResult
 
 logger = get_logger(__name__)
 
@@ -29,7 +30,7 @@ _PARSER_CONFIG_PATH = Path(__file__).parent / "config" / "github_parser_agent.ya
 
 
 def parse_github_projects(
-    search_results: list[RepoSearchResults],
+    search_results: list[RepoScrapeResult],
 ) -> list[ProjectEntry]:
     """
     Parse raw GitHub search results into structured ProjectEntry models.
@@ -60,18 +61,16 @@ def parse_github_projects(
         llm=settings.analyst_llm,
         verbose=settings.crewai_verbose,
         max_iter=3,
-        max_tokens=4096,
     )
 
     projects: list[ProjectEntry] = []
 
     for result in search_results:
-        repo_name = result.repo_name
+        repo_name = result.repo
         # Build a compact prompt with all query results concatenated
         sections = []
         for query, content in result.queries.items():
-            if content and len(content.strip()) > 20:
-                sections.append(f"### {query}\n{content}")
+            sections.append(f"### {query}\n{content}")
 
         if not sections:
             logger.warning("No useful content found for %s, skipping", repo_name)
@@ -79,7 +78,9 @@ def parse_github_projects(
 
         sections_str = "\n".join(sections)
         prompt = task_cfg["description"].format(
-            repo_name=repo_name, sections_str=sections_str
+            repo_name=repo_name,
+            sections_str=sections_str,
+            project_entry_schema=ProjectEntry.model_json_schema(),
         )
 
         logger.info(
@@ -87,13 +88,13 @@ def parse_github_projects(
         )
 
         try:
-            result_obj = agent.kickoff(prompt, response_format=ProjectEntry)
+            result_obj = agent.kickoff(prompt, response_format=ProjectEntry)  # type: ignore
 
-            if result_obj.pydantic is None:
+            if result_obj.pydantic is None:  # type: ignore
                 logger.warning("Agent returned no structured output for %s", repo_name)
                 continue
 
-            entry = result_obj.pydantic
+            entry: ProjectEntry = result_obj.pydantic  # type: ignore
             projects.append(entry)
             logger.info(
                 "Parsed %s: %d technologies, %d stars",
@@ -107,3 +108,17 @@ def parse_github_projects(
 
     logger.info("Successfully parsed %d project(s) from GitHub", len(projects))
     return projects
+
+
+if __name__ == "__main__":
+    scraper = GitHubScraper()
+    files = scraper.get_branch_files(repo="Futtano/ai-resume-builder")
+    resumeaibuilder = scraper.get_file_content(
+        repo="Futtano/ai-resume-builder", file_path="README.md"
+    )
+    amesmlproject = scraper.get_file_content(
+        repo="Futtano/ames-mlproject", file_path="README.md"
+    )
+    scraped = scraper.scraped
+    output = parse_github_projects(search_results=scraped)
+    pprint(output)

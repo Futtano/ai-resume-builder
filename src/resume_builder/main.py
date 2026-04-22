@@ -7,6 +7,7 @@ CLI entry point for the application.
 from __future__ import annotations
 import os
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from dotenv import load_dotenv
@@ -14,6 +15,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
+
+# FIXME: Maybe find a way to load envs after the imports
 
 # Load .env before any imports that read env vars
 load_dotenv()
@@ -27,56 +30,72 @@ logger = get_logger(__name__)
 app = typer.Typer(
     name="resume-builder",
     help="AI-powered resume tailoring - one tailored resume per job posting.",
-    add_completion=False,
+    add_completion=False,  # TODO: Add autocompletion
 )
 console = Console()
 
 
+# TODO: Check how app commands work
 @app.command("run")
 def run(
-    resume: Path = typer.Option(
-        ...,
-        "--resume",
-        "-r",
-        help="Path to your resume PDF",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-    ),
-    jobs: list[Path] | None = typer.Option(
-        None,
-        "--jobs",
-        "-j",
-        help="One or more job posting .txt files",
-    ),
-    jobs_dir: Path | None = typer.Option(
-        None,
-        "--jobs-dir",
-        help="Directory of job posting files (alternative to --jobs)",
-        exists=True,
-    ),
-    job_urls: list[str] | None = typer.Option(
-        None,
-        "--job-urls",
-        help="One or more job posting URLs to scrape",
-    ),
-    github_repos: list[str] | None = typer.Option(
-        None,
-        "--github-repos",
-        help="One or more GitHub repository URLs to include as projects",
-    ),
-    intro: str = typer.Option(
-        "",
-        "--intro",
-        "-i",
-        help="Brief introductory note about yourself / what you're looking for",
-    ),
-    output_dir: Path = typer.Option(
-        Path("./outputs"),
-        "--output-dir",
-        "-o",
-        help="Directory to write tailored resume .docx files",
-    ),
+    # FIXME: Maybe we can group several of this inside a single argument/option and
+    # then use functions to validate what was passed
+    resume: Annotated[
+        Path,
+        typer.Argument(  # TODO: Allow to set this from env variables
+            help="Path to your resume PDF",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+        ),
+    ],
+    jobs: Annotated[
+        list[Path] | None,
+        typer.Option(
+            "--job-files",
+            help="One or more job posting .txt files",
+        ),
+    ] = None,
+    jobs_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--jobs-dir",
+            help="Directory of job posting files (alternative to --jobs)",
+            exists=True,
+        ),
+    ] = None,
+    job_urls: Annotated[
+        list[str] | None,
+        typer.Option(
+            "-j",
+            "--job-urls",
+            help="One or more job posting URLs to scrape",
+        ),
+    ] = None,
+    projects: Annotated[
+        list[str] | None,
+        typer.Option(
+            "-p",
+            "--projects",
+            help="One or more GitHub repo URLs to include as projects",
+        ),
+    ] = None,
+    intro: Annotated[
+        str,
+        typer.Option(
+            "--intro",
+            "-i",
+            help="Brief introductory note about yourself / what you're looking for",
+        ),
+    ] = "",
+    output_dir: Annotated[
+        Path,
+        typer.Option(  # TODO: Allow to set this from env variables
+            "--output-dir",
+            "-o",
+            help="Directory to write tailored resume .docx files",
+        ),
+    ] = Path("./outputs"),
 ) -> None:
     """Generate tailored resumes for each job posting."""
     configure_logging()
@@ -97,6 +116,7 @@ def run(
         )
         raise typer.Exit(1)
 
+    # FIXME: Consider if it is appropriate to do these kind of checks here
     # Validate API key present
     if not os.getenv("OPENAI_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
         logger.error("No API key found in environment")
@@ -179,7 +199,7 @@ def run(
             intro_brief=intro,
             output_dir=output_dir,
             on_progress=on_progress,
-            github_repos=github_repos,
+            projects=projects,
         )
 
         try:

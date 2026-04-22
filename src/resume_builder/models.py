@@ -419,7 +419,7 @@ class ResumeBuilderState(BaseModel):
     job_postings_raw: list[str] = Field(
         default_factory=list, description="Raw text of each job posting"
     )
-    github_repos: list[str] = Field(
+    projects: list[str] = Field(
         default_factory=list,
         description="GitHub repository URLs provided by the user",
     )

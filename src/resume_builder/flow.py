@@ -46,7 +46,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         intro_brief: str = "",
         output_dir: Optional[Path] = None,
         on_progress: Optional[Callable[[str, int, int], None]] = None,
-        github_repos: Optional[list[str]] = None,
+        projects: Optional[list[str]] = None,
     ) -> None:
         super().__init__()
 
@@ -75,7 +75,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         self.state.intro_brief = intro_brief
         self.state.job_postings_raw = list(self._job_postings)
         self.state.total_jobs = len(self._job_postings)
-        self.state.github_repos = github_repos or []
+        self.state.projects = projects or []
 
     # -- Flow Steps --------------------------------------------------------
 
@@ -132,11 +132,11 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
     @listen(parse_resume_step)
     def parse_github_projects_step(self) -> None:
         """Step 2.5 (conditional): Scrape and parse GitHub repos if URLs provided."""
-        if not self.state.github_repos:
+        if not self.state.projects:
             logger.debug("No GitHub URLs provided, skipping project parsing")
             return
 
-        count = len(self.state.github_repos)
+        count = len(self.state.projects)
         self._emit_progress(
             f"Scraping {count} GitHub repo(s)...",
             0,
@@ -145,7 +145,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         logger.info("Scraping %d GitHub repo(s)", count)
 
         # Step 1: Raw search
-        search_results = GitHubScraper().scrape_repos(repos=self.state.github_repos)
+        search_results = GitHubScraper().scrape_repos(repos=self.state.projects)
         logger.info("Raw search complete for %d repo(s)", len(search_results))
 
         # Step 2: LLM parsing → structured ProjectEntry

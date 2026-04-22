@@ -1,15 +1,7 @@
 """
-resume_formatter.py
--------------------
+formatter.py
+------------
 Renders a TailoredResume Pydantic model into a well-formatted .docx file.
-
-This is NOT a CrewAI tool (agents don't call it directly).
-It's a utility called by the Flow after all crew runs are complete.
-
-Design principles:
-- Single-column, ATS-safe layout (no tables, text boxes, or columns)
-- Consistent heading hierarchy
-- Clean, readable typography using built-in Word styles
 """
 
 from __future__ import annotations
@@ -37,12 +29,12 @@ ACCENT_COLOR = RGBColor(0x16, 0x47, 0x7D)  # muted blue for section rules
 BODY_COLOR = RGBColor(0x2D, 0x2D, 0x2D)  # dark grey body text
 
 
-class ResumeFormatterTool:
+class ResumeFormatter:
     """
     Converts a TailoredResume into a production-ready .docx file.
 
     Usage:
-        formatter = ResumeFormatterTool()
+        formatter = ResumeFormatter()
         output_path = formatter.generate(resume, output_dir=Path("./outputs"))
     """
 

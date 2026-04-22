@@ -24,11 +24,9 @@ from resume_builder.config import settings
 from resume_builder.crew import ResumeBuilderCrew
 from resume_builder.logger import get_logger
 from resume_builder.models import ResumeBuilderState, TailoredResume
-from resume_builder.project_parser import parse_github_projects
+from resume_builder.project_parser import parse_projects
 from resume_builder.resume_parser import parse_resume
-from resume_builder.tools.github_scraper import GitHubScraper
-from resume_builder.tools.pdf_extractor import PDFExtractorTool
-from resume_builder.tools.resume_formatter import ResumeFormatterTool
+from resume_builder.processors.formatter import ResumeFormatter
 
 logger = get_logger(__name__)
 
@@ -40,73 +38,35 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 
     def __init__(
         self,
-        resume_pdf_path: Optional[Path] = None,
-        resume_text: Optional[str] = None,
-        job_postings: Optional[list[str]] = None,
+        resume_raw_text: str,
+        job_postings_raw: list[str],
+        projects_raw: Optional[list[str]] = None,
         intro_brief: str = "",
         output_dir: Optional[Path] = None,
         on_progress: Optional[Callable[[str, int, int], None]] = None,
-        projects: Optional[list[str]] = None,
     ) -> None:
         super().__init__()
 
-        # ── Exactly one resume source ───────────────────────────────
-        if resume_pdf_path is not None and resume_text is not None:
-            raise ValueError(
-                "Provide exactly one resume source: "
-                "resume_pdf_path or resume_text (not both)"
-            )
-        if resume_pdf_path is None and resume_text is None:
-            raise ValueError(
-                "Provide exactly one resume source: resume_pdf_path or resume_text"
-            )
-
-        # ── At least one job posting ────────────────────────────────
-        self._job_postings = job_postings or []
-        if not self._job_postings:
+        if not resume_raw_text.strip():
+            raise ValueError("resume_raw_text cannot be empty")
+        if not job_postings_raw:
             raise ValueError("Provide at least one job posting")
 
-        self._resume_pdf_path = resume_pdf_path
-        self._resume_text = resume_text
         self._intro_brief = intro_brief
         self._output_dir = output_dir or settings.output_dir
         self._on_progress = on_progress
 
+        self.state.resume_raw_text = resume_raw_text
+        self.state.job_postings_raw = list(job_postings_raw)
+        self.state.projects_raw = list(projects_raw or [])
         self.state.intro_brief = intro_brief
-        self.state.job_postings_raw = list(self._job_postings)
-        self.state.total_jobs = len(self._job_postings)
-        self.state.projects = projects or []
+        self.state.total_jobs = len(job_postings_raw)
 
     # -- Flow Steps --------------------------------------------------------
 
     @start()
-    def extract_resume(self) -> None:
-        """Step 1: Extract text from the candidate's resume PDF."""
-        self._emit_progress("Extracting resume text...", 0, self.state.total_jobs)
-        logger.info("Starting resume text extraction")
-
-        if self._resume_text:
-            self.state.resume_raw_text = self._resume_text
-            logger.debug("Using provided resume text (not PDF)")
-        else:
-            extractor = PDFExtractorTool()
-            self.state.resume_raw_text = extractor._run(str(self._resume_pdf_path))
-            logger.info("Extracted resume from PDF")
-
-        if not self.state.resume_raw_text.strip():
-            raise RuntimeError("Resume text is empty after extraction")
-
-        char_count = len(self.state.resume_raw_text)
-        logger.info("Resume extracted (%d chars)", char_count)
-        self._emit_progress(
-            f"Resume extracted ({char_count:,} chars). Parsing...",
-            0,
-            self.state.total_jobs,
-        )
-
-    @listen(extract_resume)
     def parse_resume_step(self) -> None:
-        """Step 2: Parse the resume ONCE into a structured ParsedResume."""
+        """Step 1: Parse the resume ONCE into a structured ParsedResume."""
         self._emit_progress(
             "Parsing resume into structured model...", 0, self.state.total_jobs
         )
@@ -131,25 +91,21 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 
     @listen(parse_resume_step)
     def parse_github_projects_step(self) -> None:
-        """Step 2.5 (conditional): Scrape and parse GitHub repos if URLs provided."""
-        if not self.state.projects:
-            logger.debug("No GitHub URLs provided, skipping project parsing")
+        """Step 2: Parse GitHub repos if raw Markdown data provided."""
+        if not self.state.projects_raw:
+            logger.debug("No GitHub projects provided, skipping project parsing")
             return
 
-        count = len(self.state.projects)
+        count = len(self.state.projects_raw)
         self._emit_progress(
-            f"Scraping {count} GitHub repo(s)...",
+            f"Parsing {count} GitHub project(s)...",
             0,
             self.state.total_jobs,
         )
-        logger.info("Scraping %d GitHub repo(s)", count)
+        logger.info("Parsing %d GitHub project(s)", count)
 
-        # Step 1: Raw search
-        search_results = GitHubScraper().scrape_repos(repos=self.state.projects)
-        logger.info("Raw search complete for %d repo(s)", len(search_results))
-
-        # Step 2: LLM parsing → structured ProjectEntry
-        projects = parse_github_projects(search_results)
+        # LLM parsing → structured ProjectEntry
+        projects = parse_projects(self.state.projects_raw)
         self.state.parsed_projects = projects
 
         self._emit_progress(
@@ -212,7 +168,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
             return
 
         logger.info("Exporting %d resume(s) to .docx", len(self.state.tailored_resumes))
-        formatter = ResumeFormatterTool()
+        formatter = ResumeFormatter()
         exported: list[Path] = []
 
         for resume in self.state.tailored_resumes:

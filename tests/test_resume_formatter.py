@@ -1,7 +1,7 @@
 """
 test_resume_formatter.py
 ------------------------
-Tests for ResumeFormatterTool — .docx generation from TailoredResume model.
+Tests for ResumeFormatter — .docx generation from TailoredResume model.
 """
 
 from __future__ import annotations
@@ -20,12 +20,12 @@ from resume_builder.models import (
     TailoredResume,
     WorkshopEntry,
 )
-from resume_builder.tools.resume_formatter import ResumeFormatterTool
+from resume_builder.processors.formatter import ResumeFormatter
 
 
 class TestResumeFormatter:
     def setup_method(self) -> None:
-        self.formatter = ResumeFormatterTool()
+        self.formatter = ResumeFormatter()
 
     def _make_resume(self) -> TailoredResume:
         return TailoredResume(

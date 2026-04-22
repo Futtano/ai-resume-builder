@@ -23,26 +23,26 @@ load_dotenv()
 
 from resume_builder.flow import ResumeBuilderFlow  # noqa: E402
 from resume_builder.logger import configure_logging, get_logger  # noqa: E402
-from resume_builder.tools.job_scraper import scrape_job_url  # noqa: E402
+from resume_builder.processors.job import JobProcessor
+from resume_builder.processors.project import ProjectProcessor
+from resume_builder.processors.resume import ResumeProcessor
 
 logger = get_logger(__name__)
+
 
 app = typer.Typer(
     name="resume-builder",
     help="AI-powered resume tailoring - one tailored resume per job posting.",
-    add_completion=False,  # TODO: Add autocompletion
+    add_completion=False,
 )
 console = Console()
 
 
-# TODO: Check how app commands work
 @app.command("run")
 def run(
-    # FIXME: Maybe we can group several of this inside a single argument/option and
-    # then use functions to validate what was passed
     resume: Annotated[
         Path,
-        typer.Argument(  # TODO: Allow to set this from env variables
+        typer.Argument(
             help="Path to your resume PDF",
             exists=True,
             file_okay=True,
@@ -90,7 +90,7 @@ def run(
     ] = "",
     output_dir: Annotated[
         Path,
-        typer.Option(  # TODO: Allow to set this from env variables
+        typer.Option(
             "--output-dir",
             "-o",
             help="Directory to write tailored resume .docx files",
@@ -101,75 +101,59 @@ def run(
     configure_logging()
     logger.info("=== Resume Builder CLI started ===")
 
-    # -- Validate inputs----------------------------------------------
-    job_posting_files: list[Path] = []
-
-    if jobs:
-        job_posting_files.extend(jobs)
-    if jobs_dir:
-        job_posting_files.extend(sorted(jobs_dir.glob("*.txt")))
-
-    if not job_posting_files and not job_urls:
-        logger.error("No job postings provided")
-        console.print(
-            "[red]Error:[/] Provide job postings via --jobs, --jobs-dir, or --job-urls"
-        )
-        raise typer.Exit(1)
-
-    # FIXME: Consider if it is appropriate to do these kind of checks here
-    # Validate API key present
+    # -- Validate API keys ----------------------------------------------
     if not os.getenv("OPENAI_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
         logger.error("No API key found in environment")
         console.print(
-            "[red]Error:[/] No API key found. "
-            "Set OPENAI_API_KEY or ANTHROPIC_API_KEY in your .env file."
+            "[red]Error:[/] No API key found. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env"
         )
         raise typer.Exit(1)
 
-    # -- Load job posting texts ----------------------------------------------
-    job_postings: list[str] = []
-    for job_file in job_posting_files:
+    # -- Extraction Phase ----------------------------------------------
+    with console.status("[bold green]Extracting data...") as status:
+        # 1. Resume
         try:
-            text = job_file.read_text(encoding="utf-8")
-            job_postings.append(text)
-            logger.debug("Loaded job posting: %s (%d chars)", job_file.name, len(text))
+            status.update(f"[bold green]Extracting resume: {resume.name}...")
+            resume_processor = ResumeProcessor().from_pdf(resume)
+            resume_raw = resume_processor.extracted
         except Exception as exc:
-            logger.warning("Could not read %s: %s", job_file, exc)
-            console.print(f"[yellow]Warning:[/] Could not read {job_file}: {exc}")
+            logger.error("Fatal resume extraction error: %s", exc)
+            console.print(f"[red]Error:[/] Could not extract resume: {exc}")
+            raise typer.Exit(1)
 
-    # -- Scrape job posting URLs ------------------------------------------
-    if job_urls:
-        for url in job_urls:
-            try:
-                console.print(f"[dim]Scraping {url}...[/]")
-                logger.info("Scraping URL: %s", url)
-                text = scrape_job_url(url)
-                job_postings.append(text)
-                console.print(f"[green]✓[/] Scraped {len(text):,} chars from {url}")
-            except Exception as exc:
-                logger.warning("Could not scrape %s: %s", url, exc)
-                console.print(f"[yellow]Warning:[/] Could not scrape {url}: {exc}")
+        # 2. Jobs
+        job_processor = JobProcessor()
+        if jobs:
+            for jf in jobs:
+                status.update(f"[bold green]Loading job file: {jf.name}...")
+                job_processor.from_file(jf)
+        if jobs_dir:
+            status.update(f"[bold green]Loading jobs from directory: {jobs_dir}...")
+            job_processor.from_directory(jobs_dir)
+        if job_urls:
+            for url in job_urls:
+                status.update(f"[bold green]Scraping job URL: {url}...")
+                job_processor.from_url(url)
 
-    if not job_postings:
-        logger.error("All job posting sources failed to load")
-        console.print("[red]Error:[/] All job posting files failed to load.")
-        raise typer.Exit(1)
+        job_postings = job_processor.extracted
+        if not job_postings:
+            logger.error("No job postings extracted")
+            console.print("[red]Error:[/] No job postings provided or all failed to load.")
+            raise typer.Exit(1)
 
-    logger.info("Loaded %d job posting(s) total", len(job_postings))
+        # 3. Projects
+        projects_raw = []
+        if projects:
+            status.update(f"[bold green]Scraping {len(projects)} GitHub repo(s)...")
+            project_processor = ProjectProcessor().from_github(projects)
+            projects_raw = project_processor.extracted
 
-    # -- Banner ----------------------------------------------
-    file_count = len(job_postings) - (len(job_urls) if job_urls else 0)
-    url_count = len(job_urls) if job_urls else 0
-    sources = []
-    if file_count:
-        sources.append(f"{file_count} file(s)")
-    if url_count:
-        sources.append(f"{url_count} URL(s)")
-
+    # -- Summary ----------------------------------------------
     console.print(
         Panel(
-            f"[bold]Resume:[/] {resume.name}\n"
-            f"[bold]Job postings:[/] {len(job_postings)} ({', '.join(sources)})\n"
+            f"[bold]Resume:[/] {resume.name} ({len(resume_raw):,} chars)\n"
+            f"[bold]Job postings:[/] {len(job_postings)} source(s)\n"
+            f"[bold]Projects:[/] {len(projects_raw)} GitHub repo(s)\n"
             f"[bold]Output:[/] {output_dir}",
             title="[bold blue]Resume Builder[/]",
             expand=False,
@@ -177,7 +161,6 @@ def run(
     )
 
     # -- Run the flow ----------------------------------------------
-    completed_count = 0
     errors: list[str] = []
 
     with Progress(
@@ -189,17 +172,15 @@ def run(
         task_id = progress.add_task("Starting...", total=None)
 
         def on_progress(message: str, _completed: int, _total: int) -> None:
-            nonlocal completed_count
-            completed_count = completed_count
             progress.update(task_id, description=message)
 
         flow = ResumeBuilderFlow(
-            resume_pdf_path=resume,
-            job_postings=job_postings,
+            resume_raw_text=resume_raw,
+            job_postings_raw=job_postings,
+            projects_raw=projects_raw,
             intro_brief=intro,
             output_dir=output_dir,
             on_progress=on_progress,
-            projects=projects,
         )
 
         try:

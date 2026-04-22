@@ -4,9 +4,8 @@ project_parser.py
 Standalone project-parsing agent — runs once per Flow execution
 (if GitHub URLs are provided).
 
-Takes raw GithubSearchTool output and produces a list of
-structured ProjectEntry instances via an LLM agent with
-response_format=list[ProjectEntry].
+Takes raw Markdown from ProjectProcessor and produces a list of
+structured ProjectEntry instances via an LLM agent.
 """
 
 from __future__ import annotations
@@ -19,32 +18,31 @@ from crewai import Agent
 from resume_builder.config import settings
 from resume_builder.logger import get_logger
 from resume_builder.models import ProjectEntry
-from resume_builder.tools.github_scraper import GitHubScraper, RepoScrapeResult
 
 logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Config path (relative to this file)
 # ---------------------------------------------------------------------------
-_PARSER_CONFIG_PATH = Path(__file__).parent / "config" / "github_parser_agent.yaml"
+_PARSER_CONFIG_PATH = Path(__file__).parent / "config" / "project_parser_agent.yaml"
 
 
-def parse_github_projects(
-    search_results: list[RepoScrapeResult],
+def parse_projects(
+    markdown_results: list[str],
 ) -> list[ProjectEntry]:
     """
-    Parse raw GitHub search results into structured ProjectEntry models.
+    Parse formatted GitHub Markdown strings into structured ProjectEntry models.
 
-    Runs a single LLM agent per repo that reads the raw search output
+    Runs a single LLM agent per repo that reads the Markdown document
     and extracts: description, tech stack, architecture, stars.
 
     Args:
-        search_results: Raw results from scrape_github_repos().
+        markdown_results: List of Markdown strings from ProjectProcessor.
 
     Returns:
         List of structured ProjectEntry instances.
     """
-    if not search_results:
+    if not markdown_results:
         return []
 
     import yaml
@@ -65,21 +63,16 @@ def parse_github_projects(
 
     projects: list[ProjectEntry] = []
 
-    for result in search_results:
-        repo_name = result.repo
-        # Build a compact prompt with all query results concatenated
-        sections = []
-        for query, content in result.queries.items():
-            sections.append(f"### {query}\n{content}")
+    for content in markdown_results:
+        # Extract repo name from the first line (expecting "# Repository: owner/repo")
+        repo_name = "Unknown"
+        first_line = content.splitlines()[0]
+        if first_line.startswith("# Repository: "):
+            repo_name = first_line.replace("# Repository: ", "").strip()
 
-        if not sections:
-            logger.warning("No useful content found for %s, skipping", repo_name)
-            continue
-
-        sections_str = "\n".join(sections)
         prompt = task_cfg["description"].format(
             repo_name=repo_name,
-            sections_str=sections_str,
+            sections_str=content,
             project_entry_schema=ProjectEntry.model_json_schema(),
         )
 
@@ -111,14 +104,8 @@ def parse_github_projects(
 
 
 if __name__ == "__main__":
-    scraper = GitHubScraper()
-    files = scraper.get_branch_files(repo="Futtano/ai-resume-builder")
-    resumeaibuilder = scraper.get_file_content(
-        repo="Futtano/ai-resume-builder", file_path="README.md"
-    )
-    amesmlproject = scraper.get_file_content(
-        repo="Futtano/ames-mlproject", file_path="README.md"
-    )
-    scraped = scraper.scraped
-    output = parse_github_projects(search_results=scraped)
+    from resume_builder.processors.project import ProjectProcessor
+
+    processor = ProjectProcessor().from_github(["Futtano/ai-resume-builder"])
+    output = parse_projects(markdown_results=processor.extracted)
     pprint(output)

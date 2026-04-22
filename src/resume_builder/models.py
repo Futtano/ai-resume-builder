@@ -423,6 +423,10 @@ class ResumeBuilderState(BaseModel):
         default_factory=list,
         description="GitHub repository URLs provided by the user",
     )
+    projects_raw: list[str] = Field(
+        default_factory=list,
+        description="Markdown-formatted information for each GitHub project",
+    )
 
     # Populated during execution
     parsed_resume: ParsedResume | None = Field(

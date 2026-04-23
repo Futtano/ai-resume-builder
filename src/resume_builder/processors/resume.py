@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Optional
 
 from resume_builder.logger import get_logger
 
@@ -31,6 +30,30 @@ class ResumeProcessor:
     def from_text(self, text: str) -> ResumeProcessor:
         """Load resume directly from text."""
         self._extracted = text
+        return self
+
+    def from_file(self, path: Path) -> ResumeProcessor:
+        """Load resume from file (auto-detect PDF or text based on extension)."""
+        path = path.resolve()
+
+        if not path.exists():
+            raise FileNotFoundError(f"Resume file not found: {path}")
+        if path.is_dir():
+            raise ValueError(f"Resume must be a file, not a directory: {path}")
+
+        suffix = path.suffix.lower()
+        if suffix == ".pdf":
+            return self.from_pdf(path)
+
+        logger.info("Extracting text from file: %s", path.name)
+        text = path.read_text(encoding="utf-8")
+        if not text or len(text.strip()) < 50:
+            raise RuntimeError(
+                f"Could not extract meaningful text from {path.name}. "
+                "File may be empty or binary."
+            )
+        self._extracted = self._clean_text(text)
+        logger.info("Extracted %d chars from text file", len(self._extracted))
         return self
 
     def from_pdf(self, path: Path) -> ResumeProcessor:
@@ -58,7 +81,7 @@ class ResumeProcessor:
         logger.info("Extracted %d chars (%d after cleaning)", len(text), len(self._extracted))
         return self
 
-    def _extract_with_pymupdf(self, path: Path) -> Optional[str]:
+    def _extract_with_pymupdf(self, path: Path) -> str | None:
         try:
             import fitz  # PyMuPDF
 
@@ -74,7 +97,7 @@ class ResumeProcessor:
             logger.debug("PyMuPDF failed: %s", exc)
             return None
 
-    def _extract_with_pypdf(self, path: Path) -> Optional[str]:
+    def _extract_with_pypdf(self, path: Path) -> str | None:
         try:
             from pypdf import PdfReader
 

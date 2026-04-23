@@ -43,7 +43,7 @@ def run(
     resume: Annotated[
         Path,
         typer.Argument(
-            help="Path to your resume PDF",
+            help="Path to your resume (PDF or text file)",
             exists=True,
             file_okay=True,
             dir_okay=False,
@@ -114,7 +114,7 @@ def run(
         # 1. Resume
         try:
             status.update(f"[bold green]Extracting resume: {resume.name}...")
-            resume_processor = ResumeProcessor().from_pdf(resume)
+            resume_processor = ResumeProcessor().from_file(resume)
             resume_raw = resume_processor.extracted
         except Exception as exc:
             logger.error("Fatal resume extraction error: %s", exc)

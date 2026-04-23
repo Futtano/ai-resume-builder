@@ -19,7 +19,7 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from resume_builder.config import settings
+from resume_builder.settings import settings
 
 _LOG_FORMAT = "%(asctime)s %(levelname)-8s %(name)s — %(message)s"
 _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"

@@ -15,7 +15,7 @@ from pathlib import Path
 
 from crewai import Agent
 
-from resume_builder.config import settings
+from resume_builder.settings import settings
 from resume_builder.logger import get_logger
 from resume_builder.models import ProjectEntry
 

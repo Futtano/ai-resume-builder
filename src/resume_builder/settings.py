@@ -11,7 +11,6 @@ configuration is needed — never read os.environ directly in application code.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
 from pydantic import Field, field_validator
@@ -42,21 +41,21 @@ class Settings(BaseSettings):
     )
 
     # ── Custom LLM provider (e.g. Ollama) ─────────────────────────────
-    llm_base_url: Optional[str] = Field(
+    llm_base_url: str | None = Field(
         default=None,
         description="Base URL for OpenAI-compatible endpoint (e.g. Ollama)",
     )
-    llm_api_key: Optional[str] = Field(
+    llm_api_key: str | None = Field(
         default=None,
         description="API key for the LLM provider (can be empty for Ollama)",
     )
 
     # ── Embedding model ───────────────────────────────────────────────
-    embedding_model: Optional[str] = Field(
+    embedding_model: str | None = Field(
         default=None,
         description="Embedding model for memory/knowledge (e.g. 'ollama/qwen3-embedding:0.6b')",
     )
-    embedding_base_url: Optional[str] = Field(
+    embedding_base_url: str | None = Field(
         default=None,
         description="Base URL for OpenAI-compatible embeddings endpoint",
     )

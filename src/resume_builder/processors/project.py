@@ -9,9 +9,8 @@ from __future__ import annotations
 import base64
 import requests
 from dataclasses import dataclass, field
-from typing import Optional
 
-from resume_builder.config import settings
+from resume_builder.settings import settings
 from resume_builder.logger import get_logger
 
 logger = get_logger(__name__)
@@ -68,7 +67,7 @@ class ProjectProcessor:
                 logger.warning("Failed to scrape GitHub repo %s: %s", repo, exc)
         return self
 
-    def _get_file_content(self, repo: str, file_path: str) -> Optional[str]:
+    def _get_file_content(self, repo: str, file_path: str) -> str | None:
         """Fetch content of a specific file from a GitHub repo."""
         url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
         try:

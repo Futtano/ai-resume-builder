@@ -14,13 +14,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable
 
 from crewai.crews.crew_output import CrewOutput
 from crewai.flow.flow import Flow, listen, start
 from crewai.types.streaming import CrewStreamingOutput
 
-from resume_builder.config import settings
+from resume_builder.settings import settings
 from resume_builder.crew import ResumeBuilderCrew
 from resume_builder.logger import get_logger
 from resume_builder.models import ResumeBuilderState, TailoredResume
@@ -40,10 +40,10 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         self,
         resume_raw_text: str,
         job_postings_raw: list[str],
-        projects_raw: Optional[list[str]] = None,
+        projects_raw: list[str] | None = None,
         intro_brief: str = "",
-        output_dir: Optional[Path] = None,
-        on_progress: Optional[Callable[[str, int, int], None]] = None,
+        output_dir: Path | None = None,
+        on_progress: Callable[[str, int, int], None] | None = None,
     ) -> None:
         super().__init__()
 

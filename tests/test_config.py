@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
-from resume_builder.config import Settings
+from resume_builder.settings import Settings
 
 
 class TestSettings:

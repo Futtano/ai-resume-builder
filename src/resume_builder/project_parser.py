@@ -12,6 +12,7 @@ from __future__ import annotations
 from pprint import pprint
 
 from pathlib import Path
+from tabnanny import verbose
 
 from crewai import Agent
 
@@ -52,13 +53,22 @@ def parse_projects(
     agent_cfg = cfg["agent"]
     task_cfg = cfg["task"]
 
+    # Extract llm params from YAML
+    llm_params = agent_cfg.get("llm_config", {})
+
     agent = Agent(
         role=agent_cfg["role"],
         goal=agent_cfg["goal"],
         backstory=agent_cfg["backstory"],
-        llm=settings.analyst_llm,
+        llm=settings.make_llm(
+            model=settings.analyst_model,
+            temperature=llm_params.get("temperature", 0.1),
+            top_p=llm_params.get("top_p", 0.95),
+            max_tokens=llm_params.get("max_tokens"),
+            frequency_penalty=llm_params.get("frequency_penalty", 0.0),
+            presence_penalty=llm_params.get("presence_penalty", 0.0),
+        ),
         verbose=settings.crewai_verbose,
-        max_iter=3,
     )
 
     projects: list[ProjectEntry] = []

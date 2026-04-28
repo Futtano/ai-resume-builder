@@ -101,9 +101,25 @@ class Settings(BaseSettings):
     # Factory helpers — use these when creating Agents
     # ------------------------------------------------------------------
 
-    def make_llm(self, model: str) -> LLM:
-        """Create an LLM instance, routing to the custom base URL if set."""
-        kwargs: dict = {"model": model}
+    def make_llm(
+        self,
+        model: str,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        max_tokens: int | None = None,
+        frequency_penalty: float = 0.0,
+        presence_penalty: float = 0.0,
+    ) -> LLM:
+        """Create an LLM instance with full parameter support."""
+        kwargs: dict = {
+            "model": model,
+            "temperature": temperature,
+            "top_p": top_p,
+            "frequency_penalty": frequency_penalty,
+            "presence_penalty": presence_penalty,
+        }
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
         if self.llm_base_url:
             kwargs["base_url"] = self.llm_base_url
         if self.llm_api_key is not None:
@@ -112,11 +128,11 @@ class Settings(BaseSettings):
 
     @property
     def analyst_llm(self) -> LLM:
-        return self.make_llm(self.analyst_model)
+        return self.make_llm(self.analyst_model, temperature=0.1, top_p=0.1)
 
     @property
     def writer_llm(self) -> LLM:
-        return self.make_llm(self.writer_model)
+        return self.make_llm(self.writer_model, temperature=0.3, top_p=0.3)
 
 
 # Module-level singleton — import this everywhere

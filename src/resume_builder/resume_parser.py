@@ -40,7 +40,6 @@ def parse_resume(
     Args:
         resume_raw_text: Full text extracted from the candidate's PDF.
         intro_brief: Optional additional candidate context.
-        llm: Override the default analyst model.
 
     Returns:
         A fully populated ParsedResume instance.
@@ -52,15 +51,23 @@ def parse_resume(
     agent_cfg = cfg["agent"]
     task_cfg = cfg["task"]
 
+    # Extract llm params from YAML
+    llm_params = agent_cfg.get("llm_config", {})
+
     logger.debug("Creating resume parser agent with model=%s", settings.analyst_model)
     agent = Agent(
         role=agent_cfg["role"],
         goal=agent_cfg["goal"],
         backstory=agent_cfg["backstory"],
-        llm=settings.analyst_llm,
+        llm=settings.make_llm(
+            model=settings.analyst_model,
+            temperature=llm_params.get("temperature", 0.1),
+            top_p=llm_params.get("top_p", 0.95),
+            max_tokens=llm_params.get("max_tokens"),
+            frequency_penalty=llm_params.get("frequency_penalty", 0.0),
+            presence_penalty=llm_params.get("presence_penalty", 0.0),
+        ),
         verbose=settings.crewai_verbose,
-        max_iter=3,
-        max_tokens=4096,
     )
 
     prompt = task_cfg["description"].format(

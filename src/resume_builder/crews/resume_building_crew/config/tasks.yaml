@@ -1,0 +1,97 @@
+resume_strategist_task:
+  description: >
+    You have the candidate's structured resume and the job requirements. Your
+    task is to build a precise tailoring strategy.
+    
+    Candidate's structured resume:
+    {parsed_resume}
+
+    Candidate's projects:
+    {parsed_projects}
+
+    Structured job requirements:
+    {parsed_job_posting}
+  expected_output: >
+    A detailed TailoringStrategy object. The gaps_and_mitigations field must
+    address every required skill that the candidate lacks. The summary_angle
+    must be a concrete, one-sentence narrative directive for the writer to build
+    a tailored resume for the job posting
+  agent: resume_strategist
+
+resume_writer_task:
+  description: >
+    Your task is to write a tailored resume for a given job posting. You should
+    prioritize and highlight the aspects of the resume that match best with the
+    job posting, but if they are too few or unrelated, please do not omit that
+    information and just produce a complete resume that can still be used. Use
+    the available context to guide your writing. Make sure to collaborate with
+    the quality reviewer to craft the best tailored resume, applying the
+    improvements suggestions to your output and telling him whenever the suggested
+    improvements are not practically applicable.
+    
+    Candidate's structured resume:
+    {parsed_resume}
+
+    Candidate's projects:
+    {parsed_projects}
+
+    Structured job requirements:
+    {parsed_job_posting}
+  expected_output: >
+    A complete TailoredResume object with all fields populated. The
+    ats_keyword_coverage list must contain every keyword from the strategy that
+    appears in the final resume. The confidence_score must reflect an honest
+    assessment. The tailoring_notes must explain the key decisions made (3–5
+    sentences).
+  agent: resume_writer
+  context:
+    - resume_strategist_task
+
+quality_reviewer_task:
+  description: >
+    You are performing a quality review of the tailored resume written by your
+    colleague. Your task is to do a review of the resume and search for
+    potential improvements and collaborate with the writer collegue to produce
+    the best possible resume for the job posting. Here are some examples of the
+    quality criteria:
+
+    CONTENT QUALITY:
+    - Does the summary open with the right angle for this role?
+    - Does every bullet point start with a strong action verb?
+    - Are achievements quantified wherever possible? 
+    - Are there any generic or weak bullets that should be rewritten? 
+    - Is anything vague where it should be specific?
+
+    ATS OPTIMISATION:
+    - Do all required ATS keywords appear in the resume?
+    - Are keywords integrated naturally, not stuffed?
+    - Does the job title in the summary match or closely mirror the posting?
+
+    ACCURACY & HONESTY:
+    - Does every claim align with the original resume?
+    - Are there any exaggerated or fabricated claims?
+    - Are all honest_constraints from the strategy respected?
+
+    CONSISTENCY:
+    - Are dates formatted consistently throughout?
+    - Is the skills list free of duplicates?
+
+    ADDITIONAL SECTIONS: 
+    - Are publications formatted correctly with title, venue, date, and link?
+    - Are workshops listed with title, date, and place?
+    - Are awards listed with title, organization, and date?
+    - Are international experiences included with place, date, and description?
+
+  expected_output: >
+    An ImprovedResume object which respects the following rules:
+    - The 'improvements' field of this object should contain all the suggested
+      improvements to be made by your writer collegue 
+    - The 'current_resume' field should repeat THE EXACT TailoredResume received by the writer,
+      so that he has a reference of the current state of the resume to be improved.
+    - If you think the current resume has a good quality level do not delegate to the
+      writer agent AND return None for the 'improvements' field, to signal that
+      the ImprovedResume is good as it is.
+  agent: quality_reviewer
+  context:
+    - resume_strategist_task
+    - resume_writer_task

@@ -118,9 +118,6 @@ class ParsedResume(BaseModel):
     certifications: list[str] = Field(
         default_factory=list, description="List of all certifications"
     )
-    raw_text: str = Field(
-        description="Full raw text of the old resume, preserved as a reference"
-    )  # always put this as a fallback
     totals_yoe: int = Field(
         default=0, description="Estimated total years of professional experience"
     )
@@ -177,6 +174,14 @@ class ProjectEntry(BaseModel):
     )
 
 
+class Projects(BaseModel):
+    """Structured representation of a list of ProjectEntry objects"""
+
+    projects: list[ProjectEntry] = Field(
+        default_factory=list, description="A list of GitHub projects"
+    )
+
+
 # ------------------------------------------------------------
 # Stage 2 output: job requirements
 # ------------------------------------------------------------
@@ -214,7 +219,7 @@ class JobRequirements(BaseModel):
     remote_policy: str = Field(
         default="", description="e.g. 'Remote', 'Hybrid', 'On-site'"
     )
-    raw_posting: str = Field(description="Full raw text of the job posting")
+    # raw_posting: str = Field(description="Full raw text of the job posting")
 
 
 # ------------------------------------------------------------
@@ -316,7 +321,6 @@ class TailoredResume(BaseModel):
     # Metadata (not shown on resume, used for file naming + UI)
     job_title: str = Field(description="Job title or role as written in the posting")
     company: str = Field(description="Company name")
-    session_id: int = Field(description="Session identifier")
 
     # Resume content
     contact: ContactInfo = Field(description="Candidate's contact information")
@@ -400,6 +404,35 @@ class TailoredResume(BaseModel):
         return f"resume_{safe_company}_{safe_title}.docx"
 
 
+class Improvements(BaseModel):
+    """Improvements to be addressed to produce a better tailored resume"""
+
+    quality: str | None = Field(
+        description="Suggestion to improve the overall content quality of the resume."
+    )
+    ats_optimisation: str | None = Field(
+        description="Suggestion to optimize the resume for ATS systems"
+    )
+    accuracy: str | None = Field(
+        description="Suggestion to eliminate or modify exaggerated or fabricated claims"
+    )
+    consistency: str | None = Field(
+        description="Suggestions about overall consistency, such as formatting, style, duplicates etc."
+    )
+    others: str | None = Field(description="Other improvement suggestions")
+
+
+class ImprovedResume(BaseModel):
+    """Composition of TailoredResume and potential improvements to be addressed"""
+
+    current_resume: TailoredResume = Field(
+        description="TailoredResume object produced by the resume writer"
+    )
+    improvements: Improvements | None = Field(
+        description="Improvements to be made to the current_resume"
+    )
+
+
 # ------------------------------------------------------------
 # Flow-level state
 # ------------------------------------------------------------
@@ -435,6 +468,10 @@ class ResumeBuilderState(BaseModel):
     parsed_projects: list[ProjectEntry] = Field(
         default_factory=list,
         description="Structured project entries from GitHub repos",
+    )
+    parsed_job_postings: list[JobRequirements] = Field(
+        default_factory=list,
+        description="List of JobRequirements models for job postings",
     )
     tailored_resumes: list[TailoredResume] = Field(
         default_factory=list,

@@ -83,7 +83,6 @@ def parse_projects(
         prompt = task_cfg["description"].format(
             repo_name=repo_name,
             sections_str=content,
-            project_entry_schema=ProjectEntry.model_json_schema(),
         )
 
         logger.info(

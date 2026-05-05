@@ -15,8 +15,7 @@ dependencies = [
 
 [project.scripts]
 resume-builder = "resume_builder.main:app"
-kickoff = "resume_builder.main:app"
-run_crew = "resume_builder.main:app"
+plot = "resume_builder.flow:plot"
 
 [build-system]
 requires = ["hatchling"]

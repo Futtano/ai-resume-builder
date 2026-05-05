@@ -12,20 +12,31 @@ Pipeline steps:
 
 from __future__ import annotations
 
-import json
+# import json
 from pathlib import Path
-from typing import Callable
+from typing import Callable, cast
 
-from crewai.crews.crew_output import CrewOutput
-from crewai.flow.flow import Flow, listen, start
-from crewai.types.streaming import CrewStreamingOutput
+# from crewai.crews.crew_output import CrewOutput
+from crewai.flow.flow import Flow, listen, start, and_
+# from crewai.types.streaming import CrewStreamingOutput
 
 from resume_builder.settings import settings
-from resume_builder.crew import ResumeBuilderCrew
+from resume_builder.crews.resume_building_crew.crew import ResumeBuilderCrew
+from resume_builder.crews.resume_parsing_crew.crew import ResumeParsingCrew
+from resume_builder.crews.job_parsing_crew.crew import JobParsingCrew
+from resume_builder.crews.repo_parsing_crew.crew import RepoParsingCrew
 from resume_builder.logger import get_logger
-from resume_builder.models import ResumeBuilderState, TailoredResume
-from resume_builder.project_parser import parse_projects
-from resume_builder.resume_parser import parse_resume
+from resume_builder.models import (
+    JobRequirements,
+    ParsedResume,
+    ProjectEntry,
+    ResumeBuilderState,
+    # TailoredResume,
+    ImprovedResume,
+)
+
+# from resume_builder.project_parser import parse_projects
+# from resume_builder.resume_parser import parse_resume
 from resume_builder.processors.formatter import ResumeFormatter
 
 logger = get_logger(__name__)
@@ -66,21 +77,30 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 
     @start()
     def parse_resume_step(self) -> None:
-        """Step 1: Parse the resume ONCE into a structured ParsedResume."""
+        """Step 1.a: Parse the resume ONCE into a structured ParsedResume."""
         self._emit_progress(
             "Parsing resume into structured model...", 0, self.state.total_jobs
         )
         logger.info("Parsing resume into structured model")
 
-        parsed = parse_resume(
-            resume_raw_text=self.state.resume_raw_text,
-            intro_brief=self.state.intro_brief,
+        parsed_resume = (
+            ResumeParsingCrew()
+            .crew()
+            .kickoff(
+                inputs={
+                    "intro_brief": self.state.intro_brief,
+                    "resume_raw_text": self.state.resume_raw_text,
+                }
+            )
         )
-        self.state.parsed_resume = parsed
+        parsed_resume = parsed_resume.pydantic  # type: ignore
+        parsed_resume = cast(ParsedResume, parsed_resume)
 
-        name = parsed.contact.name
-        skills_count = len(parsed.skills)
-        yoe = parsed.totals_yoe or "?"
+        self.state.parsed_resume = parsed_resume
+
+        name = parsed_resume.contact.name
+        skills_count = len(parsed_resume.skills)
+        yoe = parsed_resume.totals_yoe or "?"
         logger.info("Resume parsed: %s — %d skills, ~%s YOE", name, skills_count, yoe)
         self._emit_progress(
             f"✓ Resume parsed: {name} — {skills_count} skills, ~{yoe} YOE. "
@@ -89,9 +109,47 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
             self.state.total_jobs,
         )
 
-    @listen(parse_resume_step)
-    def parse_github_projects_step(self) -> None:
-        """Step 2: Parse GitHub repos if raw Markdown data provided."""
+    @start()
+    def parse_jobs_step(self) -> None:
+        """Step 1.b: Parse job postings' raw text into a list of JobRequirements models"""
+        if not self.state.job_postings_raw:
+            logger.error("List of job postings (self.state.job_postings_raw) is empty.")
+            raise ValueError("List of job postings is empty.")
+        count = len(self.state.job_postings_raw)
+        self._emit_progress(
+            f"Parsing {count} job posting(s)...",
+            0,
+            self.state.total_jobs,
+        )
+        logger.info("Parsing %d job posting(s)", count)
+
+        # JobParsingCrew: list[str] -> list[JobRequirements]
+
+        job_postings = (
+            JobParsingCrew()
+            .crew()
+            .kickoff_for_each(
+                inputs=[
+                    dict(job_posting_raw=job_posting_raw)
+                    for job_posting_raw in self.state.job_postings_raw
+                ]
+            )
+        )
+        job_postings = [posting.pydantic for posting in job_postings]  # type: ignore
+        job_postings = cast(list[JobRequirements], job_postings)
+
+        self.state.parsed_job_postings = job_postings
+
+        self._emit_progress(
+            f"✓ {len(job_postings)} job post(s) parsed.",
+            0,
+            self.state.total_jobs,
+        )
+        logger.info("Parsed %d job posting(s)", len(job_postings))
+
+    @start()
+    def parse_projects_step(self) -> None:
+        """Step 1.c: Parse GitHub repos if raw Markdown data provided."""
         if not self.state.projects_raw:
             logger.debug("No GitHub projects provided, skipping project parsing")
             return
@@ -105,7 +163,20 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         logger.info("Parsing %d GitHub project(s)", count)
 
         # LLM parsing → structured ProjectEntry
-        projects = parse_projects(self.state.projects_raw)
+
+        projects = (
+            RepoParsingCrew()
+            .crew()
+            .kickoff_for_each(
+                inputs=[
+                    dict(project_raw=project_raw)
+                    for project_raw in self.state.projects_raw
+                ]
+            )
+        )
+        projects = [project.pydantic for project in projects]  # type: ignore
+        projects = cast(list[ProjectEntry], projects)
+
         self.state.parsed_projects = projects
 
         self._emit_progress(
@@ -115,45 +186,36 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         )
         logger.info("Parsed %d GitHub project(s)", len(projects))
 
-    @listen(parse_github_projects_step)
+    @listen(and_(parse_resume_step, parse_jobs_step, parse_projects_step))
     def generate_tailored_resume(self) -> None:
-        """Step 3: Run one 4-agent crew per job posting."""
+        """Step 2: Run one 3-agent crew per job posting."""
         logger.info(
             "Starting tailored resume generation for %d job(s)", self.state.total_jobs
         )
-        for (
-            index,
-            job_posting_raw,
-        ) in enumerate(self.state.job_postings_raw):
-            label = f"job {index + 1}/{self.state.total_jobs}"
-            self._emit_progress(f"Processing {label}...", index, self.state.total_jobs)
-            logger.info("Processing %s", label)
-
-            try:
-                resume = self._run_crew_for_job(job_posting_raw, index)
-                self.state.tailored_resumes.append(resume)
-                self.state.completed_jobs += 1
-
-                logger.info(
-                    "✓ %s complete — %s at %s (confidence: %d%%)",
-                    label,
-                    resume.job_title,
-                    resume.company,
-                    resume.confidence_score,
-                )
-                self._emit_progress(
-                    f"✓ {label} complete -- {resume.job_title} at {resume.company} "
-                    f"(confidence: {resume.confidence_score}%)",
-                    self.state.completed_jobs,
-                    self.state.total_jobs,
-                )
-            except Exception as exc:
-                msg = f"✗ {label} failed: {exc}"
-                logger.error("✗ %s failed", label, exc_info=True)
-                self.state.errors.append(msg)
-                self._emit_progress(
-                    msg, self.state.completed_jobs, self.state.total_jobs
-                )
+        final_resumes = (
+            ResumeBuilderCrew()
+            .crew()
+            .kickoff_for_each(
+                inputs=[
+                    dict(
+                        parsed_resume=self.state.parsed_resume.model_dump_json(),  # type: ignore
+                        parsed_job_posting=job_posting.model_dump_json(),
+                        parsed_projects="\n".join(
+                            [
+                                project.model_dump_json()
+                                for project in self.state.parsed_projects
+                            ]
+                        ),
+                    )
+                    for job_posting in self.state.parsed_job_postings
+                ]
+            )
+        )
+        final_resumes = [resume.pydantic for resume in final_resumes]  # type: ignore
+        final_resumes = cast(list[ImprovedResume], final_resumes)
+        self.state.tailored_resumes = [
+            resume.current_resume for resume in final_resumes
+        ]
 
     @listen(generate_tailored_resume)
     def export_documents(self) -> None:
@@ -190,45 +252,50 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 
     # -- Helpers -----------------------------------------------------------
 
-    def _run_crew_for_job(self, job_posting_raw: str, job_index: int) -> TailoredResume:
-        """Run one 4-agent crew execution for a single job posting."""
-        parsed = self.state.parsed_resume
-        if parsed is None:
-            raise RuntimeError(
-                "state.parsed_resume is None. The parse_resume_step flow step "
-                "must complete before generate_tailored_resume."
-            )
-
-        logger.debug("Creating crew for job %d", job_index)
-        crew_instance = ResumeBuilderCrew(
-            session_id="",  # pyright: ignore[reportCallIssue]
-            job_index=job_index,  # pyright: ignore[reportCallIssue]
-        )
-
-        inputs: dict = {
-            "parsed_resume_json": parsed.model_dump_json(indent=2),
-            "job_posting_raw": job_posting_raw,
-            "projects_json": (
-                json.dumps(
-                    [p.model_dump() for p in self.state.parsed_projects],
-                    indent=2,
-                )
-                if self.state.parsed_projects
-                else "[]"
-            ),
-        }
-
-        logger.debug("Kicking off crew for job %d", job_index)
-        result: CrewOutput | CrewStreamingOutput = crew_instance.crew().kickoff(
-            inputs=inputs
-        )
-        if result.pydantic is None:  # pyright: ignore[reportAttributeAccessIssue]
-            raise RuntimeError(
-                "Crew returned no structured output. "
-                "Check CREWAI_VERBOSE=true logs for quality reviewer task."
-            )
-        return result.pydantic  # type: ignore[reportReturnType]
-
+    # def _run_crew_for_job(self, job_posting_raw: str, job_index: int) -> TailoredResume:
+    #     """Run one 4-agent crew execution for a single job posting."""
+    #     parsed = self.state.parsed_resume
+    #     if parsed is None:
+    #         raise RuntimeError(
+    #             "state.parsed_resume is None. The parse_resume_step flow step "
+    #             "must complete before generate_tailored_resume."
+    #         )
+    #
+    #     logger.debug("Creating crew for job %d", job_index)
+    #     crew_instance = ResumeBuilderCrew(
+    #         session_id="",  # pyright: ignore[reportCallIssue]
+    #         job_index=job_index,  # pyright: ignore[reportCallIssue]
+    #     )
+    #
+    #     inputs: dict = {
+    #         "parsed_resume_json": parsed.model_dump_json(indent=2),
+    #         "job_posting_raw": job_posting_raw,
+    #         "projects_json": (
+    #             json.dumps(
+    #                 [p.model_dump() for p in self.state.parsed_projects],
+    #                 indent=2,
+    #             )
+    #             if self.state.parsed_projects
+    #             else "[]"
+    #         ),
+    #     }
+    #
+    #     logger.debug("Kicking off crew for job %d", job_index)
+    #     result: CrewOutput | CrewStreamingOutput = crew_instance.crew().kickoff(
+    #         inputs=inputs
+    #     )
+    #     if result.pydantic is None:  # pyright: ignore[reportAttributeAccessIssue]
+    #         raise RuntimeError(
+    #             "Crew returned no structured output. "
+    #             "Check CREWAI_VERBOSE=true logs for quality reviewer task."
+    #         )
+    #     return result.pydantic  # type: ignore[reportReturnType]
+    #
     def _emit_progress(self, message: str, completed: int, total: int) -> None:
         if self._on_progress:
             self._on_progress(message, completed, total)
+
+
+def plot():
+    flow = ResumeBuilderFlow(resume_raw_text="Demo", job_postings_raw=["Demo"])
+    flow.plot()

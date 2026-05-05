@@ -29,15 +29,14 @@ agent:
 task:
   description: >
     Analyze the following search results for the GitHub repository {repo_name}
-    and extract structured project information. YOU MUST FOLLOW THIS FORMAT:
-    {project_entry_schema}  AND THIS GUIDELINES:  - repo_name: the repository
-    name (e.g. 'owner/repo') - repo_url: the full URL to the repository -
-    description: a short but comprehensive description of what the project does
-    (2-3 sentences) - tech_stack: list of technologies, languages, and
-    frameworks used - architecture: high-level explanation of how the project
-    works — information flow, how components interact, system design (3-5
-    sentences) - stars: the GitHub stars count (integer, 0 if not found) Do NOT
-    invent information. If a field cannot be determined from the search results,
-    use an empty string for description/architecture, an empty list for
+    and extract structured project information. GUIDELINES:  - repo_name: the
+    repository name (e.g. 'owner/repo') - repo_url: the full URL to the
+    repository - description: a short but comprehensive description of what the
+    project does (2-3 sentences) - tech_stack: list of technologies, languages,
+    and frameworks used - architecture: high-level explanation of how the
+    project works — information flow, how components interact, system design
+    (3-5 sentences) - stars: the GitHub stars count (integer, 0 if not found) Do
+    NOT invent information. If a field cannot be determined from the search
+    results, use an empty string for description/architecture, an empty list for
     tech_stack, and 0 for stars. --- Search Results for {repo_name} ---
-    {sections_str}
+    {sections_str} IMPORTANT: YOU MUST FOLLOW THE PROVIDED FORMAT.

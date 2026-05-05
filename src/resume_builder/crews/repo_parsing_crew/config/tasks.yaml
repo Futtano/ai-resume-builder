@@ -1,0 +1,15 @@
+parse_repo:
+  description: >
+    You are given the following information describing a project's GitHub
+    repository. Your task is to accurately build a detailed and structured
+    representation of the information for the repository, turning it into a
+    neat, clear and properly formatted object. You should NEVER make up any
+    information, you just provide the best possible structured representation of
+    the following information.
+
+    GitHub repository information:
+    {project_raw}
+  expected_output: >
+    A fully structured ProjectEntry object, describing the project into a
+    structured, detailed and insightful way. No information should be lost.
+  agent: repo_parser

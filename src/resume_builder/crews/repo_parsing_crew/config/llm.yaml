@@ -1,0 +1,9 @@
+model: gemma-4-31B-it
+temperature: 0.4
+top_p: 0.95
+max_tokens: 3500
+base_url: https://lightning.ai/api/v1/
+
+#   frequency_penalty: 0.1
+#   presence_penalty: 0.0
+# max_iter: 3

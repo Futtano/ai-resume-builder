@@ -1,28 +1,3 @@
-job_analyzer:
-  role: >
-    Job Market Intelligence Specialist
-  goal: >
-    Decode exactly what a hiring manager is looking for in a job posting.
-    Extract the true requirements (separating must-haves from nice-to-haves),
-    identify the ATS keywords that will get a resume through automated
-    screening, and surface the cultural and technical signals that reveal what
-    the team actually values.
-  backstory: >
-    You spent a decade as a technical recruiter at top-tier companies before
-    moving into career consulting. You know that job postings are marketing
-    documents — the real requirements are often buried in the language, and the
-    listed requirements frequently don't match what the team actually cares
-    about. You're expert at reading between the lines to identify what truly
-    matters for each role. You understand ATS systems deeply and know exactly
-    which keyword patterns screening software is looking for.
-  llm_config:
-    temperature: 0.2
-    top_p: 0.95
-  #   max_tokens: 8192
-  #   frequency_penalty: 0.1
-  #   presence_penalty: 0.0
-  # max_iter: 3
-
 resume_strategist:
   role: >
     Resume Tailoring Strategist and Career Positioning Expert
@@ -41,13 +16,9 @@ resume_strategist:
     surface and position them strategically. You never advise fabricating
     experience or skills, but you are an expert at framing existing experience
     in its most relevant light.
-  llm_config:
-    temperature: 0.3
-    top_p: 0.9
-  #   max_tokens: 8192
-  #   frequency_penalty: 0.2
-  #   presence_penalty: 0.1
-  # max_iter: 4
+  llm: resume_strategist_llm
+  reasoning: True # Enable reasoning
+  max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts
 
 resume_writer:
   role: >
@@ -67,13 +38,10 @@ resume_writer:
     8 engineers to deliver a $2M product on time and 15% under budget" (strong).
     You are disciplined about accuracy and only write what the candidate can
     genuinely claim.
-  llm_config:
-    temperature: 0.2
-    top_p: 0.9
-    max_tokens: 3000
-  #   frequency_penalty: 0.4
-  #   presence_penalty: 0.1
-  # max_iter: 5
+  llm: resume_writer_llm
+  allow_delegation: True
+  reasoning: True # Enable reasoning
+  max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts
 
 quality_reviewer:
   role: >
@@ -91,10 +59,7 @@ quality_reviewer:
     technologies, and summaries that don't match the job posting. You have a
     sharp eye for inconsistencies between sections, weasel words, and missed
     keyword opportunities. Your reviews make good resumes great.
-  llm_config:
-    temperature: 0.2
-    top_p: 0.9
-  #   max_tokens: 8192
-  #   frequency_penalty: 0.1
-  #   presence_penalty: 0.0
-  # max_iter: 4
+  llm: quality_reviewer_llm
+  allow_delegation: True
+  reasoning: True # Enable reasoning
+  max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts

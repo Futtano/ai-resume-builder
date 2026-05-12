@@ -11,6 +11,7 @@ repo_parser:
     system is architected, and what makes it stand out. You never invent
     information — if something isn't in the search results, you leave it out
     rather than fabricating details.
+  max_rpm: 14
   llm: repo_parser_llm
   reasoning: True # Enable reasoning
   max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts

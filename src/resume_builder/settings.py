@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     )
 
     # ── Output ────────────────────────────────────────────────────────
-    output_dir: Path = Field(default=Path("./outputs"))
+    output_dir: Path = Field(default=Path("outputs/"))
 
     # ── Logging ───────────────────────────────────────────────────────
     log_level: str = Field(

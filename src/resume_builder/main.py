@@ -101,13 +101,13 @@ def run(
     configure_logging()
     logger.info("=== Resume Builder CLI started ===")
 
-    # -- Validate API keys ----------------------------------------------
-    if not os.getenv("OPENAI_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
-        logger.error("No API key found in environment")
-        console.print(
-            "[red]Error:[/] No API key found. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env"
-        )
-        raise typer.Exit(1)
+    # # -- Validate API keys ----------------------------------------------
+    # if not os.getenv("OPENAI_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
+    #     logger.error("No API key found in environment")
+    #     console.print(
+    #         "[red]Error:[/] No API key found. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env"
+    #     )
+    #     raise typer.Exit(1)
 
     # -- Extraction Phase ----------------------------------------------
     with console.status("[bold green]Extracting data...") as status:
@@ -138,7 +138,9 @@ def run(
         job_postings = job_processor.extracted
         if not job_postings:
             logger.error("No job postings extracted")
-            console.print("[red]Error:[/] No job postings provided or all failed to load.")
+            console.print(
+                "[red]Error:[/] No job postings provided or all failed to load."
+            )
             raise typer.Exit(1)
 
         # 3. Projects

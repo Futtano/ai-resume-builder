@@ -6,7 +6,8 @@ authors = [{ name = "Daniele Loru", email = "futhanos@gmail.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
   "crawl4ai>=0.8.6",
-  "crewai>=1.14.2",
+  "crewai[litellm]>=1.14.2",
+  "docxtpl>=0.20.2",
   "pydantic>=2.11.10",
   "pymupdf>=1.26.7",
   "pypdf>=6.9.2",

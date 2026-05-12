@@ -34,10 +34,10 @@ from resume_builder.models import (
     # TailoredResume,
     ImprovedResume,
 )
+from resume_builder.utils import render_resume
 
 # from resume_builder.project_parser import parse_projects
 # from resume_builder.resume_parser import parse_resume
-from resume_builder.processors.formatter import ResumeFormatter
 
 logger = get_logger(__name__)
 
@@ -219,7 +219,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 
     @listen(generate_tailored_resume)
     def export_documents(self) -> None:
-        """Step 4: Convert all TailoredResume objects to .docx files."""
+        """Step 4: Generate .docx files"""
         if not self.state.tailored_resumes:
             logger.warning("No resumes to export (all jobs may have failed)")
             self._emit_progress(
@@ -229,18 +229,18 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
             )
             return
 
-        logger.info("Exporting %d resume(s) to .docx", len(self.state.tailored_resumes))
-        formatter = ResumeFormatter()
+        logger.info("Generating %d resume(s)", len(self.state.tailored_resumes))
         exported: list[Path] = []
 
         for resume in self.state.tailored_resumes:
             try:
-                path = formatter.generate(resume, output_dir=self._output_dir)
-                exported.append(path)
-                logger.debug("Exported: %s", path)
+                docx_path = render_resume(resume, self._output_dir)
+                if docx_path:
+                    exported.append(Path(docx_path))
+                    logger.debug("Exported: %s", docx_path)
             except Exception as exc:
-                err = f"Failed to export {resume.output_filename()}: {exc}"
-                logger.error("Export failed for %s: %s", resume.output_filename(), exc)
+                err = f"Failed to generate {resume.output_filename()}: {exc}"
+                logger.error(err)
                 self.state.errors.append(err)
 
         logger.info("%d resume(s) exported to %s", len(exported), self._output_dir)

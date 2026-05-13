@@ -1,106 +1,104 @@
 # Resume Builder
 
-An AI-powered system designed to automatically tailor professional resumes to specific job descriptions. Built with CrewAI, Typer, and Pydantic.
-
-This application uses a multi-agent AI system to analyze job requirements, identify relevant candidate skills, and rewrite resume content to maximize impact and ATS optimization.
+An AI-powered system that automatically tailors professional resumes to specific job postings. Built with CrewAI, Typer, and Pydantic.
 
 ## Features
 
-- Multi-Agent Orchestration: Employs a specialized crew of agents (Job Analyzer, Resume Strategist, Resume Writer, and Quality Reviewer) for high-quality results.
-- Flexible Job Inputs: Support for local text files, directories of files, or direct URLs via web scraping.
-- GitHub Integration: Automatically scrapes and parses GitHub repositories to include technical projects in the tailored resume.
-- ATS Optimization: Identifies and incorporates high-value keywords from job descriptions.
-- Confidence Scoring: Provides a fit score and detailed tailoring notes for each generated resume.
-- Professional Output: Generates clean, ready-to-use .docx files.
-- Visual CLI: A robust terminal interface with progress tracking and result summaries.
+* **Multi-Agent Orchestration**: Four specialized agents (Job Analyzer, Resume Strategist, Resume Writer, Quality Reviewer) collaborate on each resume.
+* **Flexible Job Inputs**: Support for local text files, directories, or direct URLs via web scraping.
+* **GitHub Integration**: Scrapes and parses GitHub repositories to include technical projects.
+* **ATS Optimization**: Identifies and incorporates high-value keywords from job descriptions.
+* **Confidence Scoring**: Provides a fit score and tailoring notes for each generated resume.
+* **Professional Output**: Generates ready-to-use .docx files.
+* **Visual CLI**: Terminal interface with progress tracking and result summaries.
 
 ## Installation
 
-This project uses uv for dependency management.
+This project uses [uv](https://github.com/astral-sh/uv) for dependency management.
 
-1. Clone the repository:
+```bash
+# Clone and enter the repository
+git clone https://github.com/Futtano/ai-resume-builder
+cd resume\_builder
 
-   ```bash
-   git clone <repository-url>
-   cd resume_builder
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   # Using crewAI (recommended)
-   crewai install
-
-   # Or using uv directly
-   uv sync
-   ```
+# Install dependencies
+uv sync
+```
 
 ## Configuration
 
-Create a .env file in the root directory with your API keys and settings:
-
-```env
-OPENAI_API_KEY=your_openai_api_key_here
-# Optional: Override default models
-WRITER_MODEL=gpt-4o
-ANALYST_MODEL=gpt-4o-mini
-```
+Create a `.env` file in the project root. Put your API keys (OPENAI\_API\_KEY, GROQ\_API\_KEY, HF\_TOKEN, ANTHROPIC\_API\_KEY, etc.) here. Use GH\_TOKEN for GitHub project-parsing functionalities. Custom API endpoints for LLMs must be specified in the `llm.yaml` config files (via the `base\_url` parameter).
 
 ## Usage
 
-The project provides a CLI utility named resume-builder.
-
 ### Basic Usage
 
-Tailor a resume for a single job posting file:
-
 ```bash
-resume-builder run \
-    --resume inputs/my_resume.pdf \
-    --jobs inputs/jobs/software_engineer.txt \
-    --intro "I am a backend engineer with 5 years of experience."
+resume-builder run inputs/my\_resume.pdf --job-files inputs/jobs/software\_engineer.txt --intro "I am a backend engineer with 5 years of experience."
 ```
 
 ### Advanced Usage
 
-Include GitHub projects and scrape job postings from the web:
-
 ```bash
-resume-builder run \
-    --resume inputs/my_resume.pdf \
-    --job-urls "https://example.com/careers/devops-role" \
-    --github-urls "https://github.com/youruser/awesome-project" \
-    --output-dir ./tailored_resumes
+resume-builder run inputs/my\_resume.pdf \\
+  --job-urls "https://example.com/careers/devops-role" \\
+  --projects "https://github.com/youruser/awesome-project" \\
+  --output-dir ./tailored\_resumes
 ```
 
 ### CLI Options
 
-- -r, --resume: Path to your original resume (PDF).
-- -j, --jobs: One or more paths to job posting .txt files.
-- --jobs-dir: Directory containing multiple job posting files.
-- --job-urls: One or more URLs to scrape job descriptions from.
-- --github-urls: GitHub repository URLs to include as projects.
-- -i, --intro: A brief note about yourself to guide the AI.
-- -o, --output-dir: Directory to save generated .docx files (default: ./outputs).
+|Option|Description|
+|-|-|
+|`resume` (positional)|Path to your resume (PDF or text)|
+|`--job-files`, `--jobs-dir`|Job posting files or directory|
+|`-j, --job-urls`|URLs to scrape job postings from|
+|`-p, --projects`|GitHub repository URLs to include as projects|
+|`-i, --intro`|Brief note about yourself to guide the AI|
+|`-o, --output-dir`|Output directory (default: `./outputs`)|
 
-## How It Works
+## Architecture
 
-The system follows a structured CrewAI Flow:
+The system uses a CrewAI Flow with the following pipeline:
 
-1. Resume Extraction: Extracts text from the provided PDF.
-2. Structured Parsing: Converts raw text into a structured data model.
-3. Project Enrichment: (Optional) Scrapes provided GitHub repositories for technical details.
-4. Tailoring Crew: Launches a 4-agent crew for each job posting:
-    - Job Analyzer: Extracts mandatory skills and ATS keywords.
-    - Resume Strategist: Determines the narrative angle for the application.
-    - Resume Writer: Rewrites experience bullets and the professional summary.
-    - Quality Reviewer: Validates output against the original resume to ensure accuracy.
-5. Document Export: Formats the final data into a professional Word document.
+1. **Resume Extraction**: Extracts text from the PDF
+2. **Structured Parsing**: Converts raw text into a structured data model
+3. **Job Parsing**: Parses job postings into requirements
+4. **Project Enrichment** (optional): Scrapes GitHub repositories for project details
+5. **Tailoring Crew**: Runs a 4-agent crew for each job posting:
+
+   * Job Analyzer: Extracts mandatory skills and ATS keywords
+   * Resume Strategist: Determines the narrative angle
+   * Resume Writer: Rewrites experience and summary
+   * Quality Reviewer: Validates output against the original
+6. **Document Export**: Formats results into Word documents
 
 ## Testing
-
-Run the test suite using pytest:
 
 ```bash
 pytest
 ```
+
+## Linting
+
+```bash
+ruff check src/ tests/
+ruff format src/ tests/
+```
+
+## Project Structure
+
+```
+src/resume\_builder/
+├── main.py              # CLI entry point
+├── flow.py              # ResumeBuilderFlow orchestrator
+├── models.py            # Pydantic data models
+├── settings.py          # Configuration
+├── processors/         # Resume, job, and project processors
+└── crews/               # CrewAI crews and their configs
+    ├── resume\_parsing\_crew/
+    ├── resume\_building\_crew/
+    ├── job\_parsing\_crew/
+    └── repo\_parsing\_crew/
+```
+

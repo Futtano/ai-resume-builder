@@ -19,7 +19,7 @@ This project uses [uv](https://github.com/astral-sh/uv) for dependency managemen
 ```bash
 # Clone and enter the repository
 git clone https://github.com/Futtano/ai-resume-builder
-cd resume\_builder
+cd resume_builder
 
 # Install dependencies
 uv sync
@@ -27,23 +27,23 @@ uv sync
 
 ## Configuration
 
-Create a `.env` file in the project root. Put your API keys (OPENAI\_API\_KEY, GROQ\_API\_KEY, HF\_TOKEN, ANTHROPIC\_API\_KEY, etc.) here. Use GH\_TOKEN for GitHub project-parsing functionalities. Custom API endpoints for LLMs must be specified in the `llm.yaml` config files (via the `base\_url` parameter).
+Create a `.env` file in the project root. Put your API keys (OPENAI_API_KEY, GROQ_API_KEY, HF_TOKEN, ANTHROPIC_API_KEY, etc.) here. Use GH_TOKEN for GitHub project-parsing functionalities. Custom API endpoints for LLMs must be specified in the `llm.yaml` config files (via the `base_url` parameter).
 
 ## Usage
 
 ### Basic Usage
 
 ```bash
-resume-builder run inputs/my\_resume.pdf --job-files inputs/jobs/software\_engineer.txt --intro "I am a backend engineer with 5 years of experience."
+resume-builder run inputs/my_resume.pdf --job-files inputs/jobs/software_engineer.txt --intro "I am a backend engineer with 5 years of experience."
 ```
 
 ### Advanced Usage
 
 ```bash
-resume-builder run inputs/my\_resume.pdf \\
+resume-builder run inputs/my_resume.pdf \\
   --job-urls "https://example.com/careers/devops-role" \\
   --projects "https://github.com/youruser/awesome-project" \\
-  --output-dir ./tailored\_resumes
+  --output-dir ./tailored_resumes
 ```
 
 ### CLI Options
@@ -89,16 +89,16 @@ ruff format src/ tests/
 ## Project Structure
 
 ```
-src/resume\_builder/
+src/resume_builder/
 ├── main.py              # CLI entry point
 ├── flow.py              # ResumeBuilderFlow orchestrator
 ├── models.py            # Pydantic data models
 ├── settings.py          # Configuration
 ├── processors/         # Resume, job, and project processors
 └── crews/               # CrewAI crews and their configs
-    ├── resume\_parsing\_crew/
-    ├── resume\_building\_crew/
-    ├── job\_parsing\_crew/
-    └── repo\_parsing\_crew/
+    ├── resume_parsing_crew/
+    ├── resume_building_crew/
+    ├── job_parsing_crew/
+    └── repo_parsing_crew/
 ```
 

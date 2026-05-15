@@ -177,7 +177,7 @@ def run(
             progress.update(task_id, description=message)
 
         flow = ResumeBuilderFlow(
-            resume_raw_text=resume_raw,
+            resume_path=resume.absolute(),
             job_postings_raw=job_postings,
             projects_raw=projects_raw,
             intro_brief=intro,

@@ -49,7 +49,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 
     def __init__(
         self,
-        resume_raw_text: str,
+        resume_path: Path,
         job_postings_raw: list[str],
         projects_raw: list[str] | None = None,
         intro_brief: str = "",
@@ -58,8 +58,6 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
     ) -> None:
         super().__init__()
 
-        if not resume_raw_text.strip():
-            raise ValueError("resume_raw_text cannot be empty")
         if not job_postings_raw:
             raise ValueError("Provide at least one job posting")
 
@@ -67,7 +65,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         self._output_dir = output_dir or settings.output_dir
         self._on_progress = on_progress
 
-        self.state.resume_raw_text = resume_raw_text
+        self.state.resume_path = resume_path
         self.state.job_postings_raw = list(job_postings_raw)
         self.state.projects_raw = list(projects_raw or [])
         self.state.intro_brief = intro_brief
@@ -89,7 +87,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
             .kickoff(
                 inputs={
                     "intro_brief": self.state.intro_brief,
-                    "resume_raw_text": self.state.resume_raw_text,
+                    "resume_path": str(self.state.resume_path),
                 }
             )
         )
@@ -297,5 +295,8 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 
 
 def plot():
-    flow = ResumeBuilderFlow(resume_raw_text="Demo", job_postings_raw=["Demo"])
+    flow = ResumeBuilderFlow(
+        resume_path=Path("inputs/old_resume.pdf"),
+        job_postings_raw=["Demo"],
+    )
     flow.plot()

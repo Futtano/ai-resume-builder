@@ -1,16 +1,20 @@
 """
 resume_parsing_crew/crew.py
 ------------------------
-Parse extracted text from a resume into a ParsedResume structured Pydantic model
+Parse a resume PDF into a ParsedResume structured Pydantic model.
 """
 
+import argparse
+from pathlib import Path
 from typing import Any
+
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai import Agent, Task, Crew, Process, LLM
 from crewai.project import CrewBase, agent, task, crew, llm
+from crewai_tools import FileReadTool
+from resume_builder.crews.resume_parsing_crew.tools import ExtractResumeContentTool
 from resume_builder.models import ParsedResume
 from resume_builder.settings import settings
-from pathlib import Path
 
 
 @CrewBase
@@ -38,6 +42,7 @@ class ResumeParsingCrew:
         return Agent(
             config=self.agents_config["resume_parser"],  # type: ignore[index]
             verbose=settings.crewai_verbose,
+            tools=[ExtractResumeContentTool(), FileReadTool()],
         )
 
     @task
@@ -58,21 +63,38 @@ class ResumeParsingCrew:
         )
 
 
-if __name__ == "__main__":
+def main() -> None:
     from dotenv import load_dotenv
-    from pathlib import Path
-    from resume_builder.processors.resume import ResumeProcessor
 
     load_dotenv()
 
-    resume_path = Path("inputs/old_resume.pdf")
-    resume_raw_text = ResumeProcessor().from_pdf(resume_path).extracted
+    parser = argparse.ArgumentParser(
+        description="Smoke test the resume parsing crew against a local PDF resume."
+    )
+    parser.add_argument("resume_pdf", type=Path, help="Path to the resume PDF file")
+    parser.add_argument(
+        "--intro",
+        default="",
+        help="Optional short professional introduction to feed into the parser.",
+    )
+    args = parser.parse_args()
+
+    resume_path = args.resume_pdf.resolve()
 
     output = (
         ResumeParsingCrew()
         .crew()
-        .kickoff(inputs={"intro_brief": "", "resume_raw_text": resume_raw_text})
+        .kickoff(
+            inputs={
+                "intro_brief": args.intro,
+                "resume_pdf_path": str(resume_path),
+            }
+        )
     )
 
     print("-" * 8, "ParsedResume", "-" * 8)
     print(output.pydantic)  # type: ignore
+
+
+if __name__ == "__main__":
+    main()

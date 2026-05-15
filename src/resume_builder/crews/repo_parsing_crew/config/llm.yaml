@@ -1,9 +1,10 @@
-model: nvidia_nim/nvidia/nemotron-3-nano-30b-a3b
+provider: openai
+model: google/gemini-2.5-flash-lite-preview-06-17
 temperature: 0.4
 top_p: 0.95
 max_tokens: 3500
 
-base_url: https://integrate.api.nvidia.com/v1
+base_url: https://lightning.ai/api/v1/
 
 #   frequency_penalty: 0.1
 #   presence_penalty: 0.0

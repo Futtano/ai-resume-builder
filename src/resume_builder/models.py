@@ -4,7 +4,7 @@ between agents
 """
 
 from pydantic import BaseModel, Field, field_validator
-
+from pathlib import Path
 # ------------------------------------------------------------
 # Shared primitives
 # ------------------------------------------------------------
@@ -445,8 +445,8 @@ class ResumeBuilderState(BaseModel):
     """
 
     session_id: str = Field(default="", description="Unique identifier for this run")
-    resume_raw_text: str = Field(
-        default="", description="Raw text extracted from the PDF"
+    resume_path: Path | None = Field(
+        default=None, description="Absolute path to the resume file"
     )
     intro_brief: str = Field(default="", description="Raw text for each job posting")
     job_postings_raw: list[str] = Field(

@@ -1,29 +1,32 @@
 resume_strategist_llm:
-  model: nvidia_nim/nvidia/nemotron-3-nano-30b-a3b
+  provider: openai
+  model: google/gemini-2.5-flash-lite-preview-06-17
   temperature: 0.7
   top_p: 0.95
   max_tokens: 3500
-  base_url: https://integrate.api.nvidia.com/v1
+  base_url: https://lightning.ai/api/v1/
   #   frequency_penalty: 0.1
   #   presence_penalty: 0.0
   # max_iter: 3
 
 resume_writer_llm:
-  model: nvidia_nim/nvidia/nemotron-3-nano-30b-a3b
+  provider: openai
+  model: google/gemini-2.5-flash-lite-preview-06-17
   temperature: 0.8
   top_p: 0.95
   max_tokens: 8000
-  base_url: https://integrate.api.nvidia.com/v1
+  base_url: https://lightning.ai/api/v1/
   #   frequency_penalty: 0.1
   #   presence_penalty: 0.0
   # max_iter: 3
 
 quality_reviewer_llm:
-  model: nvidia_nim/nvidia/nemotron-3-nano-30b-a3b
+  provider: openai
+  model: google/gemini-2.5-flash-lite-preview-06-17
   temperature: 0.7
   top_p: 0.95
   max_tokens: 4000
-  base_url: https://integrate.api.nvidia.com/v1
+  base_url: https://lightning.ai/api/v1/
   #   frequency_penalty: 0.1
   #   presence_penalty: 0.0
   # max_iter: 3

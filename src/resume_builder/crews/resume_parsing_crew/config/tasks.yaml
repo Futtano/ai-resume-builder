@@ -1,15 +1,27 @@
 parse_resume:
   description: >
-    You have been given the raw text of a candidate's resume. Your task is to
-    parse this resume completely and structure all the information into a
-    well-organised data model. If given, take also into account a brief
+    You have been given a candidate's resume. Your task is to parse this resume
+    completely and structure all the information into a well-organised data
+    model.
+
+    If a resume PDF path is provided, first use the available PDF
+    extraction tool to extract the text content from that PDF file and only
+    then parse the resume. Prefer `output_format="markdown"` because it
+    preserves layout and section structure better than plain text, however,
+    if the tool output is full of extraction artifacts, prefer `output_format="text"`.
+    Use the tool-extracted content as the source of truth whenever the PDF path is
+    present.
+
+    Only fall back to the normal file read tool if no PDF path is given or
+    if tool extraction is unavailable. If given, take also into account a brief
     professional introduction given by the candidate.
 
     Brief professional introduction:
     {intro_brief}
 
-    Raw text of the candidate's resume:
-    {resume_raw_text}
+    Resume path:
+    {resume_path}
+
   expected_output: >
     A fully structured ParsedResume object with all fields populated. Every
     section of the resume must be represented. No information should be lost.

@@ -25,6 +25,13 @@ cd resume_builder
 uv sync
 ```
 
+### OCR Support (Optional)
+
+For improved PDF parsing quality install Tesseract OCR on your system:
+
+* **Installation**: <https://tesseract-ocr.github.io/tessdoc/Installation.html>
+* **Language Packs**: <https://pymupdf.readthedocs.io/en/latest/ocr/tesseract-language-packs.html>
+
 ## Configuration
 
 Create a `.env` file in the project root. Put your API keys (OPENAI_API_KEY, GROQ_API_KEY, HF_TOKEN, ANTHROPIC_API_KEY, etc.) here. Use GH_TOKEN for GitHub project-parsing functionalities. Custom API endpoints for LLMs must be specified in the `llm.yaml` config files (via the `base_url` parameter).
@@ -101,4 +108,3 @@ src/resume_builder/
     ├── job_parsing_crew/
     └── repo_parsing_crew/
 ```
-

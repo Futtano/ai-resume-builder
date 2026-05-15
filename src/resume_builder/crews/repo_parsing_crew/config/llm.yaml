@@ -2,7 +2,7 @@ provider: openai
 model: google/gemini-2.5-flash-lite-preview-06-17
 temperature: 0.4
 top_p: 0.95
-max_tokens: 3500
+max_tokens: 5000
 
 base_url: https://lightning.ai/api/v1/
 

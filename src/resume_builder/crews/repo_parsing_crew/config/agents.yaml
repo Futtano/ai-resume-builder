@@ -13,5 +13,5 @@ repo_parser:
     rather than fabricating details.
   max_rpm: 14
   llm: repo_parser_llm
-  reasoning: True # Enable reasoning
-  max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts
+  # reasoning: True # Enable reasoning
+  # max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts

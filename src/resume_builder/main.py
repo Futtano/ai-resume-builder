@@ -4,37 +4,27 @@ main.py
 CLI entry point for the application.
 """
 
-from __future__ import annotations
-import os
 from pathlib import Path
 from typing import Annotated
 
 import typer
-from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
-
-# FIXME: Maybe find a way to load envs after the imports
-
-# Load .env before any imports that read env vars
-load_dotenv()
-
-from resume_builder.flow import ResumeBuilderFlow  # noqa: E402
-from resume_builder.logger import configure_logging, get_logger  # noqa: E402
+from resume_builder.flow import ResumeBuilderFlow
+from resume_builder.logger import configure_logging, get_logger
 from resume_builder.processors.job import JobProcessor
 from resume_builder.processors.project import ProjectProcessor
-from resume_builder.processors.resume import ResumeProcessor
 
 logger = get_logger(__name__)
-
 
 app = typer.Typer(
     name="resume-builder",
     help="AI-powered resume tailoring - one tailored resume per job posting.",
     add_completion=False,
 )
+
 console = Console()
 
 
@@ -101,26 +91,8 @@ def run(
     configure_logging()
     logger.info("=== Resume Builder CLI started ===")
 
-    # # -- Validate API keys ----------------------------------------------
-    # if not os.getenv("OPENAI_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
-    #     logger.error("No API key found in environment")
-    #     console.print(
-    #         "[red]Error:[/] No API key found. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env"
-    #     )
-    #     raise typer.Exit(1)
-
     # -- Extraction Phase ----------------------------------------------
     with console.status("[bold green]Extracting data...") as status:
-        # 1. Resume
-        try:
-            status.update(f"[bold green]Extracting resume: {resume.name}...")
-            resume_processor = ResumeProcessor().from_file(resume)
-            resume_raw = resume_processor.extracted
-        except Exception as exc:
-            logger.error("Fatal resume extraction error: %s", exc)
-            console.print(f"[red]Error:[/] Could not extract resume: {exc}")
-            raise typer.Exit(1)
-
         # 2. Jobs
         job_processor = JobProcessor()
         if jobs:
@@ -153,7 +125,7 @@ def run(
     # -- Summary ----------------------------------------------
     console.print(
         Panel(
-            f"[bold]Resume:[/] {resume.name} ({len(resume_raw):,} chars)\n"
+            f"[bold]Resume:[/] {resume.name}\n"
             f"[bold]Job postings:[/] {len(job_postings)} source(s)\n"
             f"[bold]Projects:[/] {len(projects_raw)} GitHub repo(s)\n"
             f"[bold]Output:[/] {output_dir}",

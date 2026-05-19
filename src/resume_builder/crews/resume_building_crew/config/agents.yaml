@@ -18,8 +18,8 @@ resume_strategist:
     in its most relevant light.
   max_rpm: 14
   llm: resume_strategist_llm
-  reasoning: True # Enable reasoning
-  max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts
+  # reasoning: True # Enable reasoning
+  # max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts
 
 resume_writer:
   role: >
@@ -42,8 +42,8 @@ resume_writer:
   max_rpm: 14
   llm: resume_writer_llm
   allow_delegation: True
-  reasoning: True # Enable reasoning
-  max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts
+  # reasoning: True # Enable reasoning
+  # max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts
 
 quality_reviewer:
   role: >
@@ -64,5 +64,5 @@ quality_reviewer:
   max_rpm: 14
   llm: quality_reviewer_llm
   allow_delegation: True
-  reasoning: True # Enable reasoning
-  max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts
+  # reasoning: True # Enable reasoning
+  # max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts

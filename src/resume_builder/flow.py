@@ -10,15 +10,10 @@ Pipeline steps:
   4. export_documents — write all results to .docx files
 """
 
-from __future__ import annotations
-
-# import json
 from pathlib import Path
 from typing import Callable, cast
 
-# from crewai.crews.crew_output import CrewOutput
 from crewai.flow.flow import Flow, listen, start, and_
-# from crewai.types.streaming import CrewStreamingOutput
 
 from resume_builder.settings import settings
 from resume_builder.crews.resume_building_crew.crew import ResumeBuilderCrew
@@ -31,13 +26,10 @@ from resume_builder.models import (
     ParsedResume,
     ProjectEntry,
     ResumeBuilderState,
-    # TailoredResume,
+    # TailoredResume, # TODO: Rewrite logic so that each step modifies a single TailoredResume state object
     ImprovedResume,
 )
 from resume_builder.utils import render_resume
-
-# from resume_builder.project_parser import parse_projects
-# from resume_builder.resume_parser import parse_resume
 
 logger = get_logger(__name__)
 

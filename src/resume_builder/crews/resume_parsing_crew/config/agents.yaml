@@ -13,7 +13,7 @@ resume_parser:
     understand exactly what information needs to be captured to enable precision
     tailoring. You are meticulous, thorough, and never invent information that
     isn't in the original document.
-  max_rpm: 14
+  max_rpm: 3
   llm: resume_parser_llm
   # reasoning: True # Enable reasoning
   # max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts

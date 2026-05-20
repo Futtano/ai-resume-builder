@@ -121,10 +121,8 @@ class TestParsedResume:
             experience=[],
             skills=[],
             education=[],
-            raw_text="Raw resume text",
         )
         assert pr.contact.name == "Test"
-        assert pr.raw_text == "Raw resume text"
         assert pr.totals_yoe == 0
 
     def test_with_full_data(self, sample_parsed_resume: ParsedResume) -> None:
@@ -167,7 +165,6 @@ class TestTailoredResume:
             ],
             company="Acme",
             job_title="Engineer",
-            session_id=42,
             confidence_score=70,
             ats_keyword_coverage=["python"],
             tailoring_notes="Notes",
@@ -287,7 +284,6 @@ class TestParsedResumeNewFields:
             experience=[],
             skills=[],
             education=[],
-            raw_text="Raw text",
         )
         assert pr.publications == []
         assert pr.workshops == []
@@ -301,7 +297,6 @@ class TestParsedResumeNewFields:
             experience=[],
             skills=[],
             education=[],
-            raw_text="Raw text",
             publications=[
                 PublicationEntry(
                     title="Test Paper",
@@ -347,7 +342,6 @@ class TestTailoredResumeNewFields:
             ],
             company="Acme",
             job_title="Engineer",
-            session_id=42,
             confidence_score=70,
             ats_keyword_coverage=["python"],
             tailoring_notes="Notes",

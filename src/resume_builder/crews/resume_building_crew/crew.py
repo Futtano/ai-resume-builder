@@ -127,9 +127,6 @@ if __name__ == "__main__":
     from dotenv import load_dotenv
     from pathlib import Path
     from resume_builder.models import ProjectEntry, JobRequirements, ImprovedResume
-    from resume_builder.processors.resume import ResumeProcessor
-    from resume_builder.processors.project import ProjectProcessor
-    from resume_builder.processors.job import JobProcessor
     from resume_builder.crews.repo_parsing_crew.crew import RepoParsingCrew
     from resume_builder.crews.resume_parsing_crew.crew import ResumeParsingCrew
     from resume_builder.crews.job_parsing_crew.crew import JobParsingCrew
@@ -137,42 +134,39 @@ if __name__ == "__main__":
 
     load_dotenv()
 
-    projects_raw = (
-        ProjectProcessor()
-        .from_github(["Futtano/ai-resume-builder", "Futtano/ames-mlproject"])
-        .extracted
-    )
+    repos = ["Futtano/ai-resume-builder", "Futtano/ames-mlproject"]
 
     projects = (
         RepoParsingCrew()
         .crew()
         .kickoff_for_each(
-            inputs=[dict(project_raw=project_raw) for project_raw in projects_raw]
+            inputs=[
+                {"source": repo, "source_type": "github_repo"} for repo in repos
+            ]
         )
     )
     projects = [project.pydantic for project in projects]  # type: ignore
     projects = cast(list[ProjectEntry], projects)
 
     resume_path = Path("inputs/old_resume.pdf")
-    resume_raw_text = ResumeProcessor().from_pdf(resume_path).extracted
 
     output = (
         ResumeParsingCrew()
         .crew()
-        .kickoff(inputs={"intro_brief": "", "resume_raw_text": resume_raw_text})
+        .kickoff(inputs={"intro_brief": "", "resume_path": str(resume_path)})
     )
     parsed_resume = output.pydantic  # type: ignore
     parsed_resume = cast(ParsedResume, parsed_resume)
 
-    job_postings_raw = JobProcessor().from_directory(Path("inputs/")).extracted
+    job_files = sorted(Path("inputs/").glob("*.txt"))
 
     job_postings = (
         JobParsingCrew()
         .crew()
         .kickoff_for_each(
             inputs=[
-                dict(job_posting_raw=job_posting_raw)
-                for job_posting_raw in job_postings_raw
+                {"source": str(f), "source_type": "file"}
+                for f in job_files
             ]
         )
     )

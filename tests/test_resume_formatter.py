@@ -62,7 +62,6 @@ class TestResumeFormatter:
             job_title="Platform Engineer",
             confidence_score=85,
             tailoring_notes="Tailored for platform role.",
-            session_id=1,
             ats_keyword_coverage=["python", "go", "docker"],
         )
 

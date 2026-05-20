@@ -12,10 +12,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
+
 from resume_builder.flow import ResumeBuilderFlow
 from resume_builder.logger import configure_logging, get_logger
-from resume_builder.processors.job import JobProcessor
-from resume_builder.processors.project import ProjectProcessor
 
 logger = get_logger(__name__)
 
@@ -26,6 +25,16 @@ app = typer.Typer(
 )
 
 console = Console()
+
+
+def _normalize_github_repo(raw: str) -> str:
+    """Convert a GitHub URL to owner/repo format."""
+    repo = raw.strip().rstrip("/")
+    repo = repo.removeprefix("https://")
+    repo = repo.removeprefix("http://")
+    repo = repo.removeprefix("www.")
+    repo = repo.removeprefix("github.com/")
+    return repo
 
 
 @app.command("run")
@@ -39,7 +48,7 @@ def run(
             dir_okay=False,
         ),
     ],
-    jobs: Annotated[
+    job_files: Annotated[
         list[Path] | None,
         typer.Option(
             "--job-files",
@@ -50,7 +59,7 @@ def run(
         Path | None,
         typer.Option(
             "--jobs-dir",
-            help="Directory of job posting files (alternative to --jobs)",
+            help="Directory of job posting files (alternative to --job-files)",
             exists=True,
         ),
     ] = None,
@@ -67,7 +76,7 @@ def run(
         typer.Option(
             "-p",
             "--projects",
-            help="One or more GitHub repo URLs to include as projects",
+            help="One or more GitHub repos (owner/repo format or full URL) to include as projects",
         ),
     ] = None,
     intro: Annotated[
@@ -91,43 +100,30 @@ def run(
     configure_logging()
     logger.info("=== Resume Builder CLI started ===")
 
-    # -- Extraction Phase ----------------------------------------------
-    with console.status("[bold green]Extracting data...") as status:
-        # 2. Jobs
-        job_processor = JobProcessor()
-        if jobs:
-            for jf in jobs:
-                status.update(f"[bold green]Loading job file: {jf.name}...")
-                job_processor.from_file(jf)
-        if jobs_dir:
-            status.update(f"[bold green]Loading jobs from directory: {jobs_dir}...")
-            job_processor.from_directory(jobs_dir)
-        if job_urls:
-            for url in job_urls:
-                status.update(f"[bold green]Scraping job URL: {url}...")
-                job_processor.from_url(url)
+    # -- Collect job sources ----------------------------------------------
+    job_files_list = list(job_files or [])
+    if jobs_dir:
+        job_files_list.extend(sorted(jobs_dir.glob("*.txt")))
 
-        job_postings = job_processor.extracted
-        if not job_postings:
-            logger.error("No job postings extracted")
-            console.print(
-                "[red]Error:[/] No job postings provided or all failed to load."
-            )
-            raise typer.Exit(1)
+    job_urls_list = list(job_urls or [])
 
-        # 3. Projects
-        projects_raw = []
-        if projects:
-            status.update(f"[bold green]Scraping {len(projects)} GitHub repo(s)...")
-            project_processor = ProjectProcessor().from_github(projects)
-            projects_raw = project_processor.extracted
+    if not job_files_list and not job_urls_list:
+        logger.error("No job postings provided")
+        console.print(
+            "[red]Error:[/] No job postings provided. "
+            "Use --job-files, --jobs-dir, or --job-urls."
+        )
+        raise typer.Exit(1)
+
+    # -- Normalize projects ----------------------------------------------
+    projects_list = [_normalize_github_repo(p) for p in (projects or [])]
 
     # -- Summary ----------------------------------------------
     console.print(
         Panel(
             f"[bold]Resume:[/] {resume.name}\n"
-            f"[bold]Job postings:[/] {len(job_postings)} source(s)\n"
-            f"[bold]Projects:[/] {len(projects_raw)} GitHub repo(s)\n"
+            f"[bold]Job sources:[/] {len(job_files_list)} file(s), {len(job_urls_list)} URL(s)\n"
+            f"[bold]Projects:[/] {len(projects_list)} GitHub repo(s)\n"
             f"[bold]Output:[/] {output_dir}",
             title="[bold blue]Resume Builder[/]",
             expand=False,
@@ -150,8 +146,9 @@ def run(
 
         flow = ResumeBuilderFlow(
             resume_path=resume.absolute(),
-            job_postings_raw=job_postings,
-            projects_raw=projects_raw,
+            job_files=job_files_list,
+            job_urls=job_urls_list,
+            projects=projects_list,
             intro_brief=intro,
             output_dir=output_dir,
             on_progress=on_progress,
@@ -172,7 +169,7 @@ def run(
     logger.info(
         "Flow complete: %d/%d resumes generated, %d errors",
         len(resumes),
-        len(job_postings),
+        len(job_files_list) + len(job_urls_list),
         len(errors),
     )
 
@@ -210,7 +207,7 @@ def run(
 
     logger.info("All done — %d resume(s) written to %s", len(resumes), output_dir)
     console.print(
-        f"\n[green]✓ Done.[/] {len(resumes)}/{len(job_postings)} resumes written to [bold]{output_dir}[/]\n"
+        f"\n[green]✓ Done.[/] {len(resumes)}/{len(job_files_list) + len(job_urls_list)} resumes written to [bold]{output_dir}[/]\n"
     )
 
 

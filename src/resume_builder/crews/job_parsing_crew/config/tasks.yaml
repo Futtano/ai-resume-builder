@@ -1,22 +1,31 @@
 parse_job:
   description: >
-    You have been given the raw text of a job posting. Analyse it thoroughly and
-    extract every signal about what this employer is looking for. Your task: 1.
-    Extract the EXACT job title and company name as written. 2. Determine
-    seniority level from the context (years of experience required,
-       complexity of responsibilities, reporting structure if mentioned).
+    You have been given a job posting source. Your task: determine how to
+    obtain the raw text, then analyse it thoroughly and extract every signal
+    about what this employer is looking for.
+
+    If source_type is "file": use the FileReadTool to read the local file at
+    the given source path.
+    If source_type is "url": use the job_url_scrape tool to scrape the
+    posting from the URL.
+
+    Once you have the text:
+    1. Extract the EXACT job title and company name as written.
+    2. Determine seniority level from the context (years of experience
+       required, complexity of responsibilities, reporting structure if
+       mentioned).
     3. Separate required skills from preferred skills carefully. "Required",
        "must have", "you will need" = required. "Preferred", "nice to have",
        "a plus", "bonus" = preferred.
     4. List key responsibilities — what will this person actually be doing
-    day-to-day?  5. Build the ATS keywords list: pull exact phrases from the
-    posting that an ATS
-       would scan for. Include specific technologies, methodologies, frameworks,
-       certifications, and role-specific verbs.
+       day-to-day?
+    5. Build the ATS keywords list: pull exact phrases from the posting that
+       an ATS would scan for. Include specific technologies, methodologies,
+       frameworks, certifications, and role-specific verbs.
     6. Note industry, team size, and remote policy if mentioned.
 
-    Job posting: 
-    {job_posting_raw}
+    Source: {source}
+    Source type: {source_type}
   expected_output: >
     A fully structured JobRequirements object. The ats_keywords field must
     contain at least 10 specific, exact-match keywords or phrases from the

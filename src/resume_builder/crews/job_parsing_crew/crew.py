@@ -6,12 +6,16 @@ Parse a job posting into a JobPosting structured Pydantic model
 
 from typing import Any
 import asyncio
+from pathlib import Path
+
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai import Agent, Task, Crew, Process, LLM
 from crewai.project import CrewBase, agent, task, crew, llm
+from crewai_tools import FileReadTool
+
 from resume_builder.models import JobRequirements
 from resume_builder.settings import settings
-from pathlib import Path
+from resume_builder.crews.job_parsing_crew.tools import JobURLScrapeTool
 
 
 @CrewBase
@@ -39,6 +43,7 @@ class JobParsingCrew:
         return Agent(
             config=self.agents_config["job_parser"],  # type: ignore[index]
             verbose=settings.crewai_verbose,
+            tools=[FileReadTool(), JobURLScrapeTool()],
         )
 
     @task
@@ -70,13 +75,14 @@ if __name__ == "__main__":
     ).glob("*.txt")
 
     async def parse_more_jobs(job_files):
-        async def parse_job(job_posting_raw: str) -> JobRequirements:
+        async def parse_job(source: str, source_type: str) -> JobRequirements:
             output = (
                 JobParsingCrew()
                 .crew()
                 .kickoff(
                     inputs={
-                        "job_posting_raw": job_posting_raw,
+                        "source": source,
+                        "source_type": source_type,
                     }
                 )
             )
@@ -85,11 +91,7 @@ if __name__ == "__main__":
         tasks = []
 
         for job in job_files:
-            job_posting_raw = ""
-            with open(job, "r", encoding="utf-8") as fp:
-                job_posting_raw = fp.read()
-            # Schedule each chapter writing task
-            task = asyncio.create_task(parse_job(job_posting_raw=job_posting_raw))
+            task = asyncio.create_task(parse_job(source=str(job), source_type="file"))
             tasks.append(task)
 
         parsed_jobs = await asyncio.gather(*tasks)

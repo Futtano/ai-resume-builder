@@ -87,7 +87,7 @@ def main() -> None:
         .kickoff(
             inputs={
                 "intro_brief": args.intro,
-                "resume_pdf_path": str(resume_path),
+                "resume_path": str(resume_path),
             }
         )
     )

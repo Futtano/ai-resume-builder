@@ -12,8 +12,6 @@ Log output:
     - Console: only when LOG_LEVEL is DEBUG (stderr)
 """
 
-from __future__ import annotations
-
 import logging
 import sys
 from logging.handlers import RotatingFileHandler

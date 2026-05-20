@@ -15,7 +15,7 @@ job_parser:
     about. You're expert at reading between the lines to identify what truly
     matters for each role. You understand ATS systems deeply and know exactly
     which keyword patterns screening software is looking for.
-  max_rpm: 14
+  max_rpm: 3
   llm: job_parser_llm
   # reasoning: True # Enable reasoning
   # max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts

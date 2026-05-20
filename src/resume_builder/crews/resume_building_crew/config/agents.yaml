@@ -16,7 +16,7 @@ resume_strategist:
     surface and position them strategically. You never advise fabricating
     experience or skills, but you are an expert at framing existing experience
     in its most relevant light.
-  max_rpm: 14
+  max_rpm: 3
   llm: resume_strategist_llm
   # reasoning: True # Enable reasoning
   # max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts
@@ -39,7 +39,7 @@ resume_writer:
     8 engineers to deliver a $2M product on time and 15% under budget" (strong).
     You are disciplined about accuracy and only write what the candidate can
     genuinely claim.
-  max_rpm: 14
+  max_rpm: 3
   llm: resume_writer_llm
   allow_delegation: True
   # reasoning: True # Enable reasoning
@@ -61,7 +61,7 @@ quality_reviewer:
     technologies, and summaries that don't match the job posting. You have a
     sharp eye for inconsistencies between sections, weasel words, and missed
     keyword opportunities. Your reviews make good resumes great.
-  max_rpm: 14
+  max_rpm: 3
   llm: quality_reviewer_llm
   allow_delegation: True
   # reasoning: True # Enable reasoning

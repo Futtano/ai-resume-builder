@@ -448,17 +448,16 @@ class ResumeBuilderState(BaseModel):
     resume_path: Path | None = Field(
         default=None, description="Absolute path to the resume file"
     )
-    intro_brief: str = Field(default="", description="Raw text for each job posting")
-    job_postings_raw: list[str] = Field(
-        default_factory=list, description="Raw text of each job posting"
+    intro_brief: str = Field(default="", description="Brief professional introduction")
+    job_files: list[Path] = Field(
+        default_factory=list, description="Local .txt file paths for job postings"
+    )
+    job_urls: list[str] = Field(
+        default_factory=list, description="Job posting URLs to scrape"
     )
     projects: list[str] = Field(
         default_factory=list,
-        description="GitHub repository URLs provided by the user",
-    )
-    projects_raw: list[str] = Field(
-        default_factory=list,
-        description="Markdown-formatted information for each GitHub project",
+        description="GitHub repository identifiers in owner/repo format",
     )
 
     # Populated during execution

@@ -42,26 +42,31 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
     def __init__(
         self,
         resume_path: Path,
-        job_postings_raw: list[str],
-        projects_raw: list[str] | None = None,
+        job_files: list[Path] | None = None,
+        job_urls: list[str] | None = None,
+        projects: list[str] | None = None,
         intro_brief: str = "",
         output_dir: Path | None = None,
         on_progress: Callable[[str, int, int], None] | None = None,
     ) -> None:
         super().__init__()
 
-        if not job_postings_raw:
-            raise ValueError("Provide at least one job posting")
+        job_files = list(job_files or [])
+        job_urls = list(job_urls or [])
+
+        if not job_files and not job_urls:
+            raise ValueError("Provide at least one job posting (--job-files, --jobs-dir, or --job-urls)")
 
         self._intro_brief = intro_brief
         self._output_dir = output_dir or settings.output_dir
         self._on_progress = on_progress
 
         self.state.resume_path = resume_path
-        self.state.job_postings_raw = list(job_postings_raw)
-        self.state.projects_raw = list(projects_raw or [])
+        self.state.job_files = job_files
+        self.state.job_urls = job_urls
+        self.state.projects = list(projects or [])
         self.state.intro_brief = intro_brief
-        self.state.total_jobs = len(job_postings_raw)
+        self.state.total_jobs = len(job_files) + len(job_urls)
 
     # -- Flow Steps --------------------------------------------------------
 
@@ -101,11 +106,12 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 
     @start()
     def parse_jobs_step(self) -> None:
-        """Step 1.b: Parse job postings' raw text into a list of JobRequirements models"""
-        if not self.state.job_postings_raw:
-            logger.error("List of job postings (self.state.job_postings_raw) is empty.")
-            raise ValueError("List of job postings is empty.")
-        count = len(self.state.job_postings_raw)
+        """Step 1.b: Parse job postings into a list of JobRequirements models."""
+        if not self.state.job_files and not self.state.job_urls:
+            logger.error("No job sources provided.")
+            raise ValueError("List of job sources is empty.")
+
+        count = len(self.state.job_files) + len(self.state.job_urls)
         self._emit_progress(
             f"Parsing {count} job posting(s)...",
             0,
@@ -113,17 +119,16 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         )
         logger.info("Parsing %d job posting(s)", count)
 
-        # JobParsingCrew: list[str] -> list[JobRequirements]
+        inputs: list[dict[str, str]] = []
+        for f in self.state.job_files:
+            inputs.append({"source": str(f), "source_type": "file"})
+        for u in self.state.job_urls:
+            inputs.append({"source": u, "source_type": "url"})
 
         job_postings = (
             JobParsingCrew()
             .crew()
-            .kickoff_for_each(
-                inputs=[
-                    dict(job_posting_raw=job_posting_raw)
-                    for job_posting_raw in self.state.job_postings_raw
-                ]
-            )
+            .kickoff_for_each(inputs=inputs)
         )
         job_postings = [posting.pydantic for posting in job_postings]  # type: ignore
         job_postings = cast(list[JobRequirements], job_postings)
@@ -139,12 +144,12 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 
     @start()
     def parse_projects_step(self) -> None:
-        """Step 1.c: Parse GitHub repos if raw Markdown data provided."""
-        if not self.state.projects_raw:
+        """Step 1.c: Parse GitHub repos via agent tools."""
+        if not self.state.projects:
             logger.debug("No GitHub projects provided, skipping project parsing")
             return
 
-        count = len(self.state.projects_raw)
+        count = len(self.state.projects)
         self._emit_progress(
             f"Parsing {count} GitHub project(s)...",
             0,
@@ -152,15 +157,13 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         )
         logger.info("Parsing %d GitHub project(s)", count)
 
-        # LLM parsing → structured ProjectEntry
-
         projects = (
             RepoParsingCrew()
             .crew()
             .kickoff_for_each(
                 inputs=[
-                    dict(project_raw=project_raw)
-                    for project_raw in self.state.projects_raw
+                    {"source": repo, "source_type": "github_repo"}
+                    for repo in self.state.projects
                 ]
             )
         )
@@ -289,6 +292,6 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 def plot():
     flow = ResumeBuilderFlow(
         resume_path=Path("inputs/old_resume.pdf"),
-        job_postings_raw=["Demo"],
+        job_files=[Path("inputs/sample_job.txt")],
     )
     flow.plot()

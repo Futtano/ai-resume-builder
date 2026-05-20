@@ -1,15 +1,24 @@
 parse_repo:
   description: >
-    You are given the following information describing a project's GitHub
-    repository. Your task is to accurately build a detailed and structured
-    representation of the information for the repository, turning it into a
-    neat, clear and properly formatted object. You should NEVER make up any
-    information, you just provide the best possible structured representation of
-    the following information.
+    You are given a GitHub repository to analyse. Your task is to fetch
+    information from the repository and build a detailed, structured
+    representation of the project.
 
-    GitHub repository information:
-    {project_raw}
+    Steps:
+    1. Use the github_list_dir tool to explore the top-level directory
+       structure of the repository.
+    2. Use the github_file_read tool to fetch key files that help you
+       understand the project. Typically this includes README.md for the
+       project description and pyproject.toml (or package.json, Cargo.toml,
+       etc.) for the tech stack.
+    3. Build a ProjectEntry model from the fetched content. You should NEVER
+       make up any information — only use what is present in the fetched
+       files.
+
+    Repository: {source}
+    Source type: {source_type}
   expected_output: >
-    A fully structured ProjectEntry object, describing the project into a
-    structured, detailed and insightful way. No information should be lost.
+    A fully structured ProjectEntry object, describing the project in a
+    structured, detailed and insightful way. No information should be lost
+    and nothing should be fabricated.
   agent: repo_parser

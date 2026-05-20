@@ -71,7 +71,6 @@ def sample_parsed_resume(sample_contact: ContactInfo) -> ParsedResume:
         ],
         certifications=["AWS Solutions Architect"],
         totals_yoe=5,
-        raw_text="Full raw resume text here...",
     )
 
 
@@ -110,6 +109,5 @@ def sample_tailored_resume(sample_contact: ContactInfo) -> TailoredResume:
         job_title="Senior Platform Engineer",
         confidence_score=85,
         tailoring_notes="Tailored experience bullets to highlight platform and Kubernetes expertise matching the job requirements.",
-        session_id=1,
         ats_keyword_coverage=["kubernetes", "platform", "go", "microservices"],
     )

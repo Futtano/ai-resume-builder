@@ -6,12 +6,18 @@ Parse GitHub repository information into a ProjectEntry structured Pydantic mode
 
 from typing import Any
 import asyncio
+from pathlib import Path
+
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai import Agent, Task, Crew, Process, LLM
 from crewai.project import CrewBase, agent, task, crew, llm
+
 from resume_builder.models import ProjectEntry
 from resume_builder.settings import settings
-from pathlib import Path
+from resume_builder.crews.repo_parsing_crew.tools import (
+    GitHubListDirTool,
+    GitHubFileReadTool,
+)
 
 
 @CrewBase
@@ -39,6 +45,7 @@ class RepoParsingCrew:
         return Agent(
             config=self.agents_config["repo_parser"],  # type: ignore[index]
             verbose=settings.crewai_verbose,
+            tools=[GitHubListDirTool(), GitHubFileReadTool()],
         )
 
     @task
@@ -62,34 +69,30 @@ class RepoParsingCrew:
 if __name__ == "__main__":
     from dotenv import load_dotenv
     from pathlib import Path
-    from resume_builder.processors.project import ProjectProcessor
 
     load_dotenv()
 
-    projects_raw = (
-        ProjectProcessor()
-        .from_github(["Futtano/ai-resume-builder", "Futtano/ames-mlproject"])
-        .extracted
-    )
+    repos = ["Futtano/ai-resume-builder", "Futtano/ames-mlproject"]
 
-    async def parse_more_projects(projects_raw: list[str]) -> list[ProjectEntry]:
-        async def parse_project(project_raw: str) -> ProjectEntry:
+    async def parse_more_projects(repos: list[str]) -> list[ProjectEntry]:
+        async def parse_project(repo: str) -> ProjectEntry:
             output = (
-                RepoParsingCrew().crew().kickoff(inputs={"project_raw": project_raw})
+                RepoParsingCrew()
+                .crew()
+                .kickoff(inputs={"source": repo, "source_type": "github_repo"})
             )
             return output.pydantic  # type: ignore
 
         tasks = []
 
-        for project_raw in projects_raw:
-            # Schedule each chapter writing task
-            task = asyncio.create_task(parse_project(project_raw=project_raw))
+        for repo in repos:
+            task = asyncio.create_task(parse_project(repo=repo))
             tasks.append(task)
 
         parsed_projects = await asyncio.gather(*tasks)
         return parsed_projects
 
-    parsed_projects = asyncio.run(parse_more_projects(projects_raw=projects_raw))
+    parsed_projects = asyncio.run(parse_more_projects(repos=repos))
     for i, parsed_project in enumerate(parsed_projects):
         print(f"---- PARSED PROJECT {i} ----")
         print(parsed_project)

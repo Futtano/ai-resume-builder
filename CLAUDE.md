@@ -4,29 +4,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+The project uses uv as a package and project manager.
+
 ```bash
 # Install dependencies
 uv sync
 
-# Run the pipeline (resume is positional arg, at least one job source required)
+# Batch pipeline (resume is positional arg, at least one job source required)
 uv run resume-builder run inputs/my_resume.pdf --job-files inputs/sample_job.txt -i "brief intro"
+
+# Interactive mode (resume is optional — start blank if omitted)
+uv run resume-builder interactive inputs/my_resume.pdf
+uv run resume-builder interactive  # start blank
 
 # Visualize the Flow as a Mermaid diagram
 uv run plot
 
 # Run all tests
-pytest
+uv run pytest
 # Run a single test file
-pytest tests/test_models.py
+uv run pytest tests/test_models.py
 
 # Lint and format
-ruff check src/ tests/
-ruff format src/ tests/
+uv run ruff check src/ tests/
+uv run ruff format src/ tests/
+
+# Type checking
+uv run mypy .
 ```
 
 ## Architecture
 
-This is a CrewAI-based resume tailoring tool. The architecture follows a **Flow + Crew hybrid** pattern:
+This is a CrewAI-based resume tailoring tool with two modes:
+
+### Batch pipeline (`flow.py`)
+
+A **Flow + Crew hybrid** pattern:
 
 - **`ResumeBuilderFlow`** (`flow.py`) is the top-level orchestrator — a CrewAI `Flow` subclass that manages the pipeline via `@start()` and `@listen()` decorators.
 - **Each pipeline stage delegates to a Crew** (single-agent or multi-agent CrewAI crew). Crews live in `src/resume_builder/crews/<name>_crew/` with `crew.py` + `config/{agents,tasks,llm}.yaml`.
@@ -42,14 +55,28 @@ Three `@start()` methods run in parallel:
 
 Then `@listen(and_(parse_resume_step, parse_jobs_step, parse_projects_step))` triggers:
 
-4. **`generate_tailored_resume`** — `ResumeBuilderCrew` (3 agents: strategist → writer → quality reviewer, sequential). Uses `kickoff_for_each` per job posting. Outputs `list[ImprovedResume]`.
-5. **`export_documents`** — Renders `.docx` files via `formatter.py`.
+1. **`generate_tailored_resume`** — `ResumeBuilderCrew` (3 agents: strategist → writer → quality reviewer, sequential). Uses `kickoff_for_each` per job posting. Outputs `list[ImprovedResume]`.
+2. **`export_documents`** — Renders `.docx` files via `utils.py` (`render_resume`).
+
+### Interactive mode (`interactive_flow.py`)
+
+A simple REPL loop (not a CrewAI Flow) that lets the user incrementally build and tailor a resume via natural language:
+
+- **Core pattern:** `working_resume = model_copy(update=llm_response)` — the user's NL input + current resume state is sent to an LLM, which returns a JSON dict of changed fields. The merge code is a dumb `model_copy(update=...)` — the LLM decides whether to append, replace, or delete list items based on the user's words.
+- **External data pre-fetching:** GitHub repos (`owner/repo`) and job URLs are detected in user input and fetched via `RepoParsingCrew` / `JobParsingCrew` *before* the edit-resume LLM call. The fetched data is injected as extra context.
+- **Commands:** `show`, `tailor`, `export`, `help`, `quit` are handled directly by the REPL (no LLM call).
+- **State** is `InteractiveResumeState` (`models.py`) — persisted as JSON to `resume_sessions/` on quit.
 
 ### Data flow
 
-PDF/text → raw string (processors) → Pydantic models (crews) → `.docx` (formatter).
+PDF/text/URL → CrewAI tools → Pydantic models → `.docx` (formatter).
 
-Processors (`src/resume_builder/processors/`) handle non-LLM extraction: `ResumeProcessor` extracts text from PDFs, `JobProcessor` loads/scrapes job postings, `ProjectProcessor` hits the GitHub API for repo files. These run _before_ the Flow kicks off (in `main.py`).
+LLM extraction is handled by crew-based tools defined per crew:
+
+- `ExtractResumeContentTool` (resume_parsing_crew) — PDF text extraction via `pymupdf4llm`
+- `JobURLScrapeTool` (job_parsing_crew) — URL scraping via `crawl4ai`
+- `GitHubListDirTool` / `GitHubFileReadTool` (repo_parsing_crew) — GitHub REST API via `requests`
+- `FileReadTool` from `crewai_tools` — local file reading (used by resume and job parsing crews)
 
 ### LLM configuration
 
@@ -81,7 +108,8 @@ All crews use `provider: openai` with a custom `base_url` (Lightning AI) and Goo
 - Logging is configured once in `main.py` via `configure_logging()`. All modules get loggers via `get_logger(__name__)` from `logger.py`. Logs write to `tmp/resume_builder.log` (rotating, 5MB max); console output only when `LOG_LEVEL=DEBUG`.
 - Type hints use Python 3.10+ syntax (`list[str]`, `str | None`), not the old `Optional[str]`/`List[str]`.
 - Tests use pytest with mocks for LLM calls. No real LLM or external services are called in tests. Shared fixtures in `tests/conftest.py`.
+- Use of CrewAI annotations pattern with YAML configuration files is preferred over direct code definitions to separate configuration from business logic.
 
 ## Known issues
 
-- Tests in `tests/test_flow.py` reference a `resume_raw_text` constructor parameter that no longer exists on `ResumeBuilderFlow` — the flow now takes `resume_path: Path`. These tests will fail and need updating.
+- None currently.

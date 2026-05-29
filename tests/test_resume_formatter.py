@@ -201,5 +201,10 @@ class TestResumeFormatter:
 
         doc = Document(str(path))
         full_text = " ".join(p.text for p in doc.paragraphs)
-        for section in ["PUBLICATIONS", "WORKSHOPS", "AWARDS", "INTERNATIONAL EXPERIENCES"]:
+        for section in [
+            "PUBLICATIONS",
+            "WORKSHOPS",
+            "AWARDS",
+            "INTERNATIONAL EXPERIENCES",
+        ]:
             assert section in full_text.upper()

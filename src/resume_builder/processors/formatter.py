@@ -289,7 +289,9 @@ class ResumeFormatter:
                 run.font.size = Pt(10)
                 run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
 
-    def _write_international_experiences(self, doc: DocumentClass, resume: TailoredResume) -> None:
+    def _write_international_experiences(
+        self, doc: DocumentClass, resume: TailoredResume
+    ) -> None:
         self._add_section_heading(doc, "International Experiences")
         for exp in resume.international_experiences:
             # Place line

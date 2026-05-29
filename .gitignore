@@ -224,4 +224,6 @@ GEMINI.md
 inputs/
 outputs/
 tmp/
+resume_sessions/
 TODO.md
+plan.html

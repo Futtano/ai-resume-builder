@@ -55,7 +55,9 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         job_urls = list(job_urls or [])
 
         if not job_files and not job_urls:
-            raise ValueError("Provide at least one job posting (--job-files, --jobs-dir, or --job-urls)")
+            raise ValueError(
+                "Provide at least one job posting (--job-files, --jobs-dir, or --job-urls)"
+            )
 
         self._intro_brief = intro_brief
         self._output_dir = output_dir or settings.output_dir
@@ -125,11 +127,7 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
         for u in self.state.job_urls:
             inputs.append({"source": u, "source_type": "url"})
 
-        job_postings = (
-            JobParsingCrew()
-            .crew()
-            .kickoff_for_each(inputs=inputs)
-        )
+        job_postings = JobParsingCrew().crew().kickoff_for_each(inputs=inputs)
         job_postings = [posting.pydantic for posting in job_postings]  # type: ignore
         job_postings = cast(list[JobRequirements], job_postings)
 

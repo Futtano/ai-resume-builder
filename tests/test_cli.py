@@ -51,11 +51,15 @@ class TestCLIValidation:
         (jobs_dir / "job1.txt").write_text("Job 1")
         (jobs_dir / "job2.txt").write_text("Job 2")
 
-        result = runner.invoke(app, [
-            "run",
-            str(resume_file),
-            "--jobs-dir", str(jobs_dir),
-        ])
+        result = runner.invoke(
+            app,
+            [
+                "run",
+                str(resume_file),
+                "--jobs-dir",
+                str(jobs_dir),
+            ],
+        )
         assert "Provide job postings" not in result.output
         assert "No job postings" not in result.output
 
@@ -79,4 +83,6 @@ class TestGitHubNormalization:
     def test_normalize_www_url(self) -> None:
         from resume_builder.main import _normalize_github_repo
 
-        assert _normalize_github_repo("https://www.github.com/owner/repo") == "owner/repo"
+        assert (
+            _normalize_github_repo("https://www.github.com/owner/repo") == "owner/repo"
+        )

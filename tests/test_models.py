@@ -182,7 +182,10 @@ class TestTailoredResume:
             company="CloudScale Inc",
             job_title="Senior Platform Engineer",
         )
-        assert tr.output_filename() == "resume_CloudScale_Inc_Senior_Platform_Engineer.docx"
+        assert (
+            tr.output_filename()
+            == "resume_CloudScale_Inc_Senior_Platform_Engineer.docx"
+        )
 
     def test_output_filename_special_chars(self) -> None:
         tr = self._minimal_tailored(

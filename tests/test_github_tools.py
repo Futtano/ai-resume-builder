@@ -129,9 +129,7 @@ class TestGitHubFileReadTool:
     def test_fetch_rate_limited(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 403
-        mock_resp.json.return_value = {
-            "message": "API rate limit exceeded for ..."
-        }
+        mock_resp.json.return_value = {"message": "API rate limit exceeded for ..."}
         mock_get.return_value = mock_resp
 
         tool = GitHubFileReadTool()

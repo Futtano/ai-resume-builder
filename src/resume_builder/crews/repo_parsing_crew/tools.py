@@ -55,10 +55,16 @@ class GitHubListDirTool(BaseTool):
     args_schema: type[BaseModel] = GitHubListDirInput
 
     def _run(self, repo: str, path: str = "") -> str:
-        url = f"https://api.github.com/repos/{repo}/contents/{path}" if path else f"https://api.github.com/repos/{repo}/contents"
+        url = (
+            f"https://api.github.com/repos/{repo}/contents/{path}"
+            if path
+            else f"https://api.github.com/repos/{repo}/contents"
+        )
         status, data = _github_get(url)
         if status != 200:
-            err = data.get("message", str(data)) if isinstance(data, dict) else str(data)  # type: ignore[union-attr]
+            err = (
+                data.get("message", str(data)) if isinstance(data, dict) else str(data)
+            )  # type: ignore[union-attr]
             return f"[ERROR] Failed to list {repo}/{path or '/'}: {err}"
 
         if not isinstance(data, list):
@@ -93,7 +99,9 @@ class GitHubFileReadTool(BaseTool):
         url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
         status, data = _github_get(url)
         if status != 200:
-            err = data.get("message", str(data)) if isinstance(data, dict) else str(data)  # type: ignore[union-attr]
+            err = (
+                data.get("message", str(data)) if isinstance(data, dict) else str(data)
+            )  # type: ignore[union-attr]
             return f"[ERROR] Failed to fetch {file_path} from {repo}: {err}"
 
         if not isinstance(data, dict):

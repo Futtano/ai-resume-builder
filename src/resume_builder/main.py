@@ -14,6 +14,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
 from resume_builder.flow import ResumeBuilderFlow
+from resume_builder.interactive_flow import InteractiveResumeFlow
 from resume_builder.logger import configure_logging, get_logger
 
 logger = get_logger(__name__)
@@ -209,6 +210,58 @@ def run(
     console.print(
         f"\n[green]✓ Done.[/] {len(resumes)}/{len(job_files_list) + len(job_urls_list)} resumes written to [bold]{output_dir}[/]\n"
     )
+
+
+@app.command("interactive")
+def interactive(
+    resume: Annotated[
+        Path | None,
+        typer.Argument(
+            help="Path to your resume (PDF). Optional — start with a blank resume.",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+        ),
+    ] = None,
+    output_dir: Annotated[
+        Path,
+        typer.Option(
+            "--output-dir",
+            "-o",
+            help="Directory to write tailored resume .docx files",
+        ),
+    ] = Path("./outputs"),
+) -> None:
+    """Interactive mode: build and tailor your resume conversationally."""
+    configure_logging()
+    logger.info("=== Interactive Resume Builder started ===")
+
+    output_dir = output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    console.print(
+        Panel(
+            f"[bold]Resume:[/] {resume.name if resume else 'None (start fresh)'}\n"
+            f"[bold]Output:[/] {output_dir}",
+            title="[bold green]Interactive Resume Builder[/]",
+            expand=False,
+        )
+    )
+
+    flow = InteractiveResumeFlow(
+        resume_path=resume.resolve() if resume else None,
+        output_dir=output_dir,
+    )
+
+    try:
+        flow.run()
+    except Exception as exc:
+        logger.error("Fatal flow error: %s", exc, exc_info=True)
+        console.print(f"\n[red]Fatal error:[/] {exc}")
+        raise typer.Exit(1)
+
+    logger.info("Interactive session ended.")
+    console.print("\n[green]Session complete.[/]")
 
 
 if __name__ == "__main__":

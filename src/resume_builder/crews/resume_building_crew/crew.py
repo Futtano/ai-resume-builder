@@ -140,9 +140,7 @@ if __name__ == "__main__":
         RepoParsingCrew()
         .crew()
         .kickoff_for_each(
-            inputs=[
-                {"source": repo, "source_type": "github_repo"} for repo in repos
-            ]
+            inputs=[{"source": repo, "source_type": "github_repo"} for repo in repos]
         )
     )
     projects = [project.pydantic for project in projects]  # type: ignore
@@ -164,10 +162,7 @@ if __name__ == "__main__":
         JobParsingCrew()
         .crew()
         .kickoff_for_each(
-            inputs=[
-                {"source": str(f), "source_type": "file"}
-                for f in job_files
-            ]
+            inputs=[{"source": str(f), "source_type": "file"} for f in job_files]
         )
     )
     job_postings = [posting.pydantic for posting in job_postings]  # type: ignore

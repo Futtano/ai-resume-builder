@@ -18,8 +18,6 @@ resume_strategist:
     in its most relevant light.
   max_rpm: 3
   llm: resume_strategist_llm
-  # reasoning: True # Enable reasoning
-  # max_reasoning_attempts: 3 # Optional: Set a maximum number of reasoning attempts
 
 resume_writer:
   role: >

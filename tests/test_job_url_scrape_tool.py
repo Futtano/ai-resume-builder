@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-
 from resume_builder.crews.job_parsing_crew.tools import JobURLScrapeTool
 
 

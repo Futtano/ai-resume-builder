@@ -10,25 +10,26 @@ Pipeline steps:
   4. export_documents — write all results to .docx files
 """
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, cast
+from typing import cast
 
-from crewai.flow.flow import Flow, listen, start, and_
+from crewai.flow.flow import Flow, and_, listen, start
 
-from resume_builder.settings import settings
-from resume_builder.crews.resume_building_crew.crew import ResumeBuilderCrew
-from resume_builder.crews.resume_parsing_crew.crew import ResumeParsingCrew
 from resume_builder.crews.job_parsing_crew.crew import JobParsingCrew
 from resume_builder.crews.repo_parsing_crew.crew import RepoParsingCrew
+from resume_builder.crews.resume_building_crew.crew import ResumeBuilderCrew
+from resume_builder.crews.resume_parsing_crew.crew import ResumeParsingCrew
 from resume_builder.logger import get_logger
 from resume_builder.models import (
+    # TailoredResume, # TODO: Rewrite logic so that each step modifies a single TailoredResume state object
+    ImprovedResume,
     JobRequirements,
     ParsedResume,
     ProjectEntry,
     ResumeBuilderState,
-    # TailoredResume, # TODO: Rewrite logic so that each step modifies a single TailoredResume state object
-    ImprovedResume,
 )
+from resume_builder.settings import settings
 from resume_builder.utils import render_resume
 
 logger = get_logger(__name__)
@@ -243,45 +244,6 @@ class ResumeBuilderFlow(Flow[ResumeBuilderState]):
 
     # -- Helpers -----------------------------------------------------------
 
-    # def _run_crew_for_job(self, job_posting_raw: str, job_index: int) -> TailoredResume:
-    #     """Run one 4-agent crew execution for a single job posting."""
-    #     parsed = self.state.parsed_resume
-    #     if parsed is None:
-    #         raise RuntimeError(
-    #             "state.parsed_resume is None. The parse_resume_step flow step "
-    #             "must complete before generate_tailored_resume."
-    #         )
-    #
-    #     logger.debug("Creating crew for job %d", job_index)
-    #     crew_instance = ResumeBuilderCrew(
-    #         session_id="",  # pyright: ignore[reportCallIssue]
-    #         job_index=job_index,  # pyright: ignore[reportCallIssue]
-    #     )
-    #
-    #     inputs: dict = {
-    #         "parsed_resume_json": parsed.model_dump_json(indent=2),
-    #         "job_posting_raw": job_posting_raw,
-    #         "projects_json": (
-    #             json.dumps(
-    #                 [p.model_dump() for p in self.state.parsed_projects],
-    #                 indent=2,
-    #             )
-    #             if self.state.parsed_projects
-    #             else "[]"
-    #         ),
-    #     }
-    #
-    #     logger.debug("Kicking off crew for job %d", job_index)
-    #     result: CrewOutput | CrewStreamingOutput = crew_instance.crew().kickoff(
-    #         inputs=inputs
-    #     )
-    #     if result.pydantic is None:  # pyright: ignore[reportAttributeAccessIssue]
-    #         raise RuntimeError(
-    #             "Crew returned no structured output. "
-    #             "Check CREWAI_VERBOSE=true logs for quality reviewer task."
-    #         )
-    #     return result.pydantic  # type: ignore[reportReturnType]
-    #
     def _emit_progress(self, message: str, completed: int, total: int) -> None:
         if self._on_progress:
             self._on_progress(message, completed, total)

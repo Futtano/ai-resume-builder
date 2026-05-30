@@ -5,7 +5,7 @@ Local tools for extracting structured text from resume PDFs.
 """
 
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
@@ -46,8 +46,6 @@ class ExtractResumeContentTool(BaseTool):
             content = pymupdf4llm.to_markdown(str(path))
         else:
             content = pymupdf4llm.to_text(str(path))
-
-        content = cast(str, content)
 
         if not content or not content.strip():
             raise RuntimeError(f"No extractable content returned for {path.name}")

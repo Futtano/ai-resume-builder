@@ -4,12 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-The project uses uv as a package and project manager.
-
 ```bash
-# Install dependencies
-uv sync
-
 # Batch pipeline (resume is positional arg, at least one job source required)
 uv run resume-builder run inputs/my_resume.pdf --job-files inputs/sample_job.txt -i "brief intro"
 
@@ -19,18 +14,6 @@ uv run resume-builder interactive  # start blank
 
 # Visualize the Flow as a Mermaid diagram
 uv run plot
-
-# Run all tests
-uv run pytest
-# Run a single test file
-uv run pytest tests/test_models.py
-
-# Lint and format
-uv run ruff check src/ tests/
-uv run ruff format src/ tests/
-
-# Type checking
-uv run mypy .
 ```
 
 ## Architecture
@@ -63,7 +46,7 @@ Then `@listen(and_(parse_resume_step, parse_jobs_step, parse_projects_step))` tr
 A simple REPL loop (not a CrewAI Flow) that lets the user incrementally build and tailor a resume via natural language:
 
 - **Core pattern:** `working_resume = model_copy(update=llm_response)` — the user's NL input + current resume state is sent to an LLM, which returns a JSON dict of changed fields. The merge code is a dumb `model_copy(update=...)` — the LLM decides whether to append, replace, or delete list items based on the user's words.
-- **External data pre-fetching:** GitHub repos (`owner/repo`) and job URLs are detected in user input and fetched via `RepoParsingCrew` / `JobParsingCrew` *before* the edit-resume LLM call. The fetched data is injected as extra context.
+- **External data pre-fetching:** GitHub repos (`owner/repo`) and job URLs are detected in user input and fetched via `RepoParsingCrew` / `JobParsingCrew` _before_ the edit-resume LLM call. The fetched data is injected as extra context.
 - **Commands:** `show`, `tailor`, `export`, `help`, `quit` are handled directly by the REPL (no LLM call).
 - **State** is `InteractiveResumeState` (`models.py`) — persisted as JSON to `resume_sessions/` on quit.
 

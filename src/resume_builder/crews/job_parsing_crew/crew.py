@@ -4,18 +4,18 @@ job_parsing_crew/crew.py
 Parse a job posting into a JobPosting structured Pydantic model
 """
 
-from typing import Any
 import asyncio
 from pathlib import Path
+from typing import Any
 
+from crewai import LLM, Agent, Crew, Process, Task
 from crewai.agents.agent_builder.base_agent import BaseAgent
-from crewai import Agent, Task, Crew, Process, LLM
-from crewai.project import CrewBase, agent, task, crew, llm
+from crewai.project import CrewBase, agent, crew, llm, task
 from crewai_tools import FileReadTool
 
+from resume_builder.crews.job_parsing_crew.tools import JobURLScrapeTool
 from resume_builder.models import JobRequirements
 from resume_builder.settings import settings
-from resume_builder.crews.job_parsing_crew.tools import JobURLScrapeTool
 
 
 @CrewBase
@@ -33,9 +33,8 @@ class JobParsingCrew:
     def job_parser_llm(self) -> LLM:
         import yaml
 
-        with open(self.llm_config, "r", encoding="utf-8") as fp:
+        with open(self.llm_config, encoding="utf-8") as fp:
             llm_config: dict[str, Any] = yaml.safe_load(fp)
-            print(llm_config)
         return LLM(**llm_config)
 
     @agent
@@ -65,8 +64,9 @@ class JobParsingCrew:
 
 
 if __name__ == "__main__":
-    from dotenv import load_dotenv
     from pathlib import Path
+
+    from dotenv import load_dotenv
 
     load_dotenv()
 

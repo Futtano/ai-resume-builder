@@ -161,7 +161,7 @@ def run(
         except Exception as exc:
             logger.error("Fatal flow error: %s", exc, exc_info=True)
             console.print(f"\n[red]Fatal error:[/] {exc}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from exc
 
     # -- Results summary ----------------------------------------------
     console.print()
@@ -258,7 +258,7 @@ def interactive(
     except Exception as exc:
         logger.error("Fatal flow error: %s", exc, exc_info=True)
         console.print(f"\n[red]Fatal error:[/] {exc}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from exc
 
     logger.info("Interactive session ended.")
     console.print("\n[green]Session complete.[/]")

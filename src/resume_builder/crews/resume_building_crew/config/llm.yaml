@@ -5,9 +5,6 @@ resume_strategist_llm:
   top_p: 0.95
   max_tokens: 5000
   base_url: https://lightning.ai/api/v1/
-  #   frequency_penalty: 0.1
-  #   presence_penalty: 0.0
-  # max_iter: 3
 
 resume_writer_llm:
   provider: openai
@@ -16,9 +13,6 @@ resume_writer_llm:
   top_p: 0.95
   max_tokens: 8000
   base_url: https://lightning.ai/api/v1/
-  #   frequency_penalty: 0.1
-  #   presence_penalty: 0.0
-  # max_iter: 3
 
 quality_reviewer_llm:
   provider: openai
@@ -27,6 +21,3 @@ quality_reviewer_llm:
   top_p: 0.95
   max_tokens: 5000
   base_url: https://lightning.ai/api/v1/
-  #   frequency_penalty: 0.1
-  #   presence_penalty: 0.0
-  # max_iter: 3

@@ -8,10 +8,11 @@ import argparse
 from pathlib import Path
 from typing import Any
 
+from crewai import LLM, Agent, Crew, Process, Task
 from crewai.agents.agent_builder.base_agent import BaseAgent
-from crewai import Agent, Task, Crew, Process, LLM
-from crewai.project import CrewBase, agent, task, crew, llm
+from crewai.project import CrewBase, agent, crew, llm, task
 from crewai_tools import FileReadTool
+
 from resume_builder.crews.resume_parsing_crew.tools import ExtractResumeContentTool
 from resume_builder.models import ParsedResume
 from resume_builder.settings import settings
@@ -32,9 +33,8 @@ class ResumeParsingCrew:
     def resume_parser_llm(self) -> LLM:
         import yaml
 
-        with open(self.llm_config, "r", encoding="utf-8") as fp:
+        with open(self.llm_config, encoding="utf-8") as fp:
             llm_config: dict[str, Any] = yaml.safe_load(fp)
-            print(llm_config)
         return LLM(**llm_config)
 
     @agent

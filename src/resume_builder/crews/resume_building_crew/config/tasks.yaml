@@ -2,7 +2,7 @@ resume_strategist_task:
   description: >
     You have the candidate's structured resume and the job requirements. Your
     task is to build a precise tailoring strategy.
-    
+
     Candidate's structured resume:
     {parsed_resume}
 
@@ -28,7 +28,7 @@ resume_writer_task:
     the quality reviewer to craft the best tailored resume, applying the
     improvements suggestions to your output and telling him whenever the suggested
     improvements are not practically applicable.
-    
+
     Candidate's structured resume:
     {parsed_resume}
 
@@ -51,15 +51,15 @@ quality_reviewer_task:
   description: >
     You are performing a quality review of the tailored resume written by your
     colleague. Your task is to do a review of the resume and search for
-    potential improvements and collaborate with the writer collegue to produce
+    potential improvements and collaborate with the writer colleague to produce
     the best possible resume for the job posting. Here are some examples of the
     quality criteria:
 
     CONTENT QUALITY:
     - Does the summary open with the right angle for this role?
     - Does every bullet point start with a strong action verb?
-    - Are achievements quantified wherever possible? 
-    - Are there any generic or weak bullets that should be rewritten? 
+    - Are achievements quantified wherever possible?
+    - Are there any generic or weak bullets that should be rewritten?
     - Is anything vague where it should be specific?
 
     ATS OPTIMISATION:
@@ -76,7 +76,7 @@ quality_reviewer_task:
     - Are dates formatted consistently throughout?
     - Is the skills list free of duplicates?
 
-    ADDITIONAL SECTIONS: 
+    ADDITIONAL SECTIONS:
     - Are publications formatted correctly with title, venue, date, and link?
     - Are workshops listed with title, date, and place?
     - Are awards listed with title, organization, and date?
@@ -85,7 +85,7 @@ quality_reviewer_task:
   expected_output: >
     An ImprovedResume object which respects the following rules:
     - The 'improvements' field of this object should contain all the suggested
-      improvements to be made by your writer collegue 
+      improvements to be made by your writer collegue
     - The 'current_resume' field should repeat THE EXACT TailoredResume received by the writer,
       so that he has a reference of the current state of the resume to be improved.
     - If you think the current resume has a good quality level do not delegate to the

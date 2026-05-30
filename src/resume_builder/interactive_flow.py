@@ -18,6 +18,7 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
+import yaml
 from crewai import LLM
 
 from resume_builder.crews.job_parsing_crew.crew import JobParsingCrew
@@ -145,13 +146,12 @@ class InteractiveResumeFlow:
             session_id=uuid.uuid4().hex[:8],
             resume_path=str(resume_path.resolve()) if resume_path else None,
         )
-        self._llm = LLM(
-            provider="openai",
-            model="google/gemini-2.5-flash-lite-preview-06-17",
-            base_url="https://lightning.ai/api/v1/",
-            temperature=0.0,
-            max_tokens=4096,
+        llm_config_path = (
+            Path(__file__).resolve().parent / "config" / "llm_interactive.yaml"
         )
+        with open(llm_config_path) as fp:
+            llm_config = yaml.safe_load(fp)
+        self._llm = LLM(**llm_config)
 
     # ── Public API ────────────────────────────────────────────────────
 
@@ -258,7 +258,7 @@ class InteractiveResumeFlow:
         except Exception as exc:
             logger.error("LLM call failed: %s", exc)
             print(f"  Failed to process: {exc}")
-            self._log_turn("edit_error", str(exc))
+            self._log_turn("edit_error", str(exc), user_input)
             return
 
         # Parse and merge — strip markdown fences if present
@@ -267,17 +267,17 @@ class InteractiveResumeFlow:
         except (json.JSONDecodeError, ValueError) as exc:
             logger.error("LLM returned invalid JSON: %s", exc)
             print(f"  Failed to parse response as JSON: {exc}")
-            self._log_turn("edit_error", f"Invalid JSON: {exc}")
+            self._log_turn("edit_error", f"Invalid JSON: {exc}", user_input)
             return
 
         if not isinstance(update_dict, dict):
             print("  Unexpected response format — expected a JSON object.")
-            self._log_turn("edit_error", "Response was not a dict")
+            self._log_turn("edit_error", "Response was not a dict", user_input)
             return
 
         if not update_dict:
             print("  No changes detected.")
-            self._log_turn("edit_noop", "No fields returned")
+            self._log_turn("edit_noop", "No fields returned", user_input)
             return
 
         # Merge update into full dict and re-validate so nested models
@@ -289,12 +289,12 @@ class InteractiveResumeFlow:
         except Exception as exc:
             logger.error("Failed to merge update: %s", exc)
             print(f"  Failed to apply changes: {exc}")
-            self._log_turn("edit_error", f"Merge failed: {exc}")
+            self._log_turn("edit_error", f"Merge failed: {exc}", user_input)
             return
 
         changed = ", ".join(update_dict.keys())
         print(f"  Updated: {changed}")
-        self._log_turn("edit", f"Updated fields: {changed}")
+        self._log_turn("edit", f"Updated fields: {changed}", user_input)
 
     # ── Pre-fetch external data ───────────────────────────────────────
 
@@ -534,11 +534,11 @@ class InteractiveResumeFlow:
 
     # ── Helpers ───────────────────────────────────────────────────────
 
-    def _log_turn(self, intent: str, summary: str) -> None:
+    def _log_turn(self, intent: str, summary: str, user_input: str = "") -> None:
         self.state.conversation_log.append(
             ConversationEntry(
                 timestamp=datetime.now(UTC).isoformat(),
-                user_input="",
+                user_input=user_input,
                 intent=intent,
                 result_summary=summary,
             )
@@ -591,7 +591,7 @@ class InteractiveResumeFlow:
 # ── Input detection helpers ────────────────────────────────────────
 
 _GITHUB_REPO_RE = re.compile(
-    r"(?:github\.com/)?([a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+)",
+    r"\b(?:github\.com/)?([a-zA-Z0-9][a-zA-Z0-9._-]*/[a-zA-Z0-9._-]+)",
 )
 
 

@@ -1,6 +1,6 @@
 """
-config.py
----------
+settings.py
+-----------
 Centralised application configuration using pydantic-settings.
 
 All settings have sensible defaults and can be overridden via environment

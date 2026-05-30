@@ -16,12 +16,11 @@ from resume_builder.models import (
     EducationEntry,
     ExperienceEntry,
     ParsedResume,
-    TailoredResume,
 )
 
 
 @pytest.fixture()
-def tmp_dir() -> Path:
+def tmp_dir():
     """Return a temporary directory (cleaned up after the test)."""
     with tempfile.TemporaryDirectory() as d:
         yield Path(d)
@@ -71,43 +70,4 @@ def sample_parsed_resume(sample_contact: ContactInfo) -> ParsedResume:
         ],
         certifications=["AWS Solutions Architect"],
         totals_yoe=5,
-    )
-
-
-@pytest.fixture()
-def sample_tailored_resume(sample_contact: ContactInfo) -> TailoredResume:
-    from resume_builder.models import TailoredExperienceEntry
-
-    return TailoredResume(
-        contact=sample_contact,
-        professional_summary="Backend engineer with 5+ years of experience building scalable distributed systems, seeking platform engineering roles.",
-        experience=[
-            TailoredExperienceEntry(
-                company="TechCorp",
-                role="Senior Platform Engineer",
-                start_date="Jan 2022",
-                end_date="Present",
-                location="Milan, Italy",
-                bullets=[
-                    "Architected platform microservices handling 10M+ daily API requests with 99.9% uptime",
-                    "Led migration to Kubernetes-based deployment platform, reducing latency by 40%",
-                ],
-            ),
-        ],
-        skills=["Python", "Go", "Kubernetes", "Docker", "Terraform", "AWS"],
-        education=[
-            EducationEntry(
-                institution="Politecnico di Milano",
-                degree="Master's",
-                field_of_study="Computer Science",
-                start_date="2016",
-                end_date="2020",
-            ),
-        ],
-        certifications=["AWS Solutions Architect"],
-        company="CloudScale Inc",
-        job_title="Senior Platform Engineer",
-        confidence_score=85,
-        tailoring_notes="Tailored experience bullets to highlight platform and Kubernetes expertise matching the job requirements.",
-        ats_keyword_coverage=["kubernetes", "platform", "go", "microservices"],
     )

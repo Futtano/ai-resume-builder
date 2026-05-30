@@ -6,6 +6,7 @@ between agents
 from pathlib import Path
 
 from pydantic import BaseModel, Field, field_validator
+
 # ------------------------------------------------------------
 # Shared primitives
 # ------------------------------------------------------------
@@ -48,7 +49,7 @@ class EducationEntry(BaseModel):
     degree: str = Field(description="Diploma, bachelor, master etc.")
     field_of_study: str = Field(description="Field of study")
     start_date: str = Field(description="Start date, e.g. Jan 2021 or 2021")
-    end_date: str = Field(description="Start date, e.g. Jan 2021 or 2021")
+    end_date: str = Field(description="End date, e.g. Jan 2021 or 2021")
     degree_mark: str = Field(default="", description="Final degree mark")
     honours: str = Field(default="", description="Honours")
 
@@ -175,14 +176,6 @@ class ProjectEntry(BaseModel):
     )
 
 
-class Projects(BaseModel):
-    """Structured representation of a list of ProjectEntry objects"""
-
-    projects: list[ProjectEntry] = Field(
-        default_factory=list, description="A list of GitHub projects"
-    )
-
-
 # ------------------------------------------------------------
 # Stage 2 output: job requirements
 # ------------------------------------------------------------
@@ -220,7 +213,6 @@ class JobRequirements(BaseModel):
     remote_policy: str = Field(
         default="", description="e.g. 'Remote', 'Hybrid', 'On-site'"
     )
-    # raw_posting: str = Field(description="Full raw text of the job posting")
 
 
 # ------------------------------------------------------------
@@ -297,15 +289,6 @@ class TailoredExperienceEntry(BaseModel):
             "Quantify impact where data exist in the original"
         )
     )
-
-    # @field_validator("bullets")
-    # @classmethod
-    # def at_least_two_bullets(cls, v: list[str]) -> list[str]:
-    #     if len(v) < 2:
-    #         raise ValueError(
-    #             "Each experience entry must have at least two bullet points"
-    #         )
-    #     return v
 
 
 # ------------------------------------------------------------

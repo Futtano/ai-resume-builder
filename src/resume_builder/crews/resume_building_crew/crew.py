@@ -5,20 +5,21 @@ Builds a TailoredResume model from the old resume of the candidate,
 a job posting and a (optional) list of projects
 """
 
-from typing import Any
-from crewai.agents.agent_builder.base_agent import BaseAgent
-from crewai import Agent, Task, Crew, Process, LLM
-from crewai.project import CrewBase, agent, task, crew, llm
-from resume_builder.settings import settings
 from pathlib import Path
+from typing import Any
+
+from crewai import LLM, Agent, Crew, Process, Task
+from crewai.agents.agent_builder.base_agent import BaseAgent
+from crewai.project import CrewBase, agent, crew, llm, task
 
 from resume_builder.logger import get_logger
 from resume_builder.models import (
+    ImprovedResume,
     ParsedResume,
     TailoredResume,
-    ImprovedResume,
     TailoringStrategy,
 )
+from resume_builder.settings import settings
 
 logger = get_logger(__name__)
 
@@ -34,32 +35,24 @@ class ResumeBuilderCrew:
     tasks_config = "config/tasks.yaml"
     llm_config = Path(__file__).resolve().parent / "config" / "llm.yaml"
 
-    @llm
-    def resume_strategist_llm(self) -> LLM:
+    def _load_llm_config(self, key: str) -> LLM:
         import yaml
 
-        with open(self.llm_config, "r", encoding="utf-8") as fp:
-            llm_config: dict[str, Any] = yaml.safe_load(fp)["resume_strategist_llm"]
-            print(llm_config)
-        return LLM(**llm_config)
+        with open(self.llm_config, encoding="utf-8") as fp:
+            config: dict[str, Any] = yaml.safe_load(fp)[key]
+        return LLM(**config)
+
+    @llm
+    def resume_strategist_llm(self) -> LLM:
+        return self._load_llm_config("resume_strategist_llm")
 
     @llm
     def resume_writer_llm(self) -> LLM:
-        import yaml
-
-        with open(self.llm_config, "r", encoding="utf-8") as fp:
-            llm_config: dict[str, Any] = yaml.safe_load(fp)["resume_writer_llm"]
-            print(llm_config)
-        return LLM(**llm_config)
+        return self._load_llm_config("resume_writer_llm")
 
     @llm
     def quality_reviewer_llm(self) -> LLM:
-        import yaml
-
-        with open(self.llm_config, "r", encoding="utf-8") as fp:
-            llm_config: dict[str, Any] = yaml.safe_load(fp)["quality_reviewer_llm"]
-            print(llm_config)
-        return LLM(**llm_config)
+        return self._load_llm_config("quality_reviewer_llm")
 
     @agent
     def resume_strategist(self) -> Agent:
@@ -123,14 +116,16 @@ class ResumeBuilderCrew:
 
 
 if __name__ == "__main__":
-    from typing import cast
-    from dotenv import load_dotenv
     from pathlib import Path
-    from resume_builder.models import ProjectEntry, JobRequirements, ImprovedResume
+    from typing import cast
+
+    from dotenv import load_dotenv
+
+    from resume_builder.crews.job_parsing_crew.crew import JobParsingCrew
     from resume_builder.crews.repo_parsing_crew.crew import RepoParsingCrew
     from resume_builder.crews.resume_parsing_crew.crew import ResumeParsingCrew
-    from resume_builder.crews.job_parsing_crew.crew import JobParsingCrew
-    from resume_builder.processors.formatter import ResumeFormatter
+    from resume_builder.models import ImprovedResume, JobRequirements, ProjectEntry
+    from resume_builder.utils import render_resume
 
     load_dotenv()
 
@@ -191,16 +186,10 @@ if __name__ == "__main__":
         print("-" * 10, f" FINAL RESUME {i + 1} ", "-" * 10)
         print(resume, "\n")
 
-    formatter = ResumeFormatter()
-    exported: list[Path] = []
+    exported: list[str] = []
 
-    resumes_to_export = [resume.current_resume for resume in final_resumes]
-
-    for resume in resumes_to_export:
-        path = formatter.generate(resume, output_dir=Path("outputs/"))
+    for resume in final_resumes:
+        path = render_resume(resume.current_resume, Path("outputs/"))
         exported.append(path)
 
-    print("%d resume(s) exported to %s", len(exported), Path("outputs/"))
-    print(
-        f"Done! {len(exported)} resume(s) written to {Path('outputs/')}",
-    )
+    print(f"Done! {len(exported)} resume(s) written to outputs/")

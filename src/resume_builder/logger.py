@@ -73,7 +73,8 @@ def get_logger(name: str) -> logging.Logger:
     """Return a logger scoped under the 'resume_builder' namespace."""
     # Normalise: "resume_builder.tools.job_scraper" → "resume_builder.job_scraper"
     if name.startswith("resume_builder."):
-        short = name.replace("resume_builder.", "resume_builder.", 1)
+        parts = name.split(".")
+        short = f"{parts[0]}.{parts[-1]}" if len(parts) > 2 else name
     else:
         short = f"resume_builder.{name}"
     return logging.getLogger(short)

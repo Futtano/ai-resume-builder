@@ -6,7 +6,7 @@ Tools for extracting job posting text from URLs using crawl4ai.
 
 import asyncio
 
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
@@ -45,11 +45,11 @@ class JobURLScrapeTool(BaseTool):
                     f"{result.error_message or 'unknown error'}"
                 )
 
+            md = result.markdown
             text = (
-                result.markdown.fit_markdown
-                or result.markdown.raw_markdown
-                or result.extracted_content
-                or ""
+                (md.fit_markdown or md.raw_markdown)
+                if md
+                else (result.extracted_content or "")
             )
             if not text.strip():
                 return f"[ERROR] No extractable content found at {url}"

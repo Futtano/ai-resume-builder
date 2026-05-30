@@ -8,12 +8,10 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-
 from resume_builder.crews.repo_parsing_crew.tools import (
-    GitHubListDirTool,
     GitHubFileReadTool,
+    GitHubListDirTool,
 )
-
 
 GITHUB_API = "https://api.github.com"
 

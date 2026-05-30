@@ -251,6 +251,7 @@ def interactive(
     flow = InteractiveResumeFlow(
         resume_path=resume.resolve() if resume else None,
         output_dir=output_dir,
+        console=console,
     )
 
     try:

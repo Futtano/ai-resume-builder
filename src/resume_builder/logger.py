@@ -9,7 +9,7 @@ All modules should obtain their logger via:
 
 Log output:
     - File:  ./tmp/resume_builder.log (rotating, 5 MB max, 3 backups)
-    - Console: only when LOG_LEVEL is DEBUG (stderr)
+    - Console: only when LOG_LEVEL is DEBUG (stderr, custom format)
 """
 
 import logging
@@ -28,6 +28,21 @@ _BACKUP_COUNT = 3
 
 _configured = False
 
+# Third-party loggers that tend to be noisy on the console.
+# We bump them to WARNING so they don't clutter interactive output.
+_NOISY_THIRD_PARTY_LOGGERS = [
+    "crawl4ai",
+    "httpx",
+    "httpcore",
+    "openai",
+    "urllib3",
+    "asyncio",
+    "litellm",
+    "crewai",
+    "chromadb",
+    "opentelemetry",
+]
+
 
 def configure_logging(level: str | None = None) -> None:
     """
@@ -43,9 +58,23 @@ def configure_logging(level: str | None = None) -> None:
 
     log_level = (level or settings.log_level).upper()
 
-    root = logging.getLogger("resume_builder")
-    root.setLevel(log_level)
-    root.handlers.clear()  # avoid duplicate handlers on re-runs
+    # ── Silence noisy third-party loggers on the console ──────────────
+    for name in _NOISY_THIRD_PARTY_LOGGERS:
+        logging.getLogger(name).setLevel(logging.WARNING)
+
+    # ── Neutralise the root logger so third-party libs (CrewAI, crawl4ai)
+    #    that call logging.basicConfig() / add StreamHandlers don't leak
+    #    default-format messages to stderr. --------------------------------
+    root_logger = logging.getLogger()
+    for h in list(root_logger.handlers):
+        root_logger.removeHandler(h)
+    root_logger.addHandler(logging.NullHandler())
+
+    # ── Package logger ────────────────────────────────────────────────
+    pkg = logging.getLogger("resume_builder")
+    pkg.setLevel(log_level)
+    pkg.handlers.clear()
+    pkg.propagate = False  # don't bubble up to the (now-null) root logger
 
     formatter = logging.Formatter(_LOG_FORMAT, datefmt=_DATE_FORMAT)
 
@@ -59,14 +88,14 @@ def configure_logging(level: str | None = None) -> None:
     )
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
-    root.addHandler(file_handler)
+    pkg.addHandler(file_handler)
 
     # ── Console handler (only in DEBUG mode, stderr) ──────────────────
     if log_level == "DEBUG":
         console_handler = logging.StreamHandler(sys.stderr)
         console_handler.setLevel(logging.DEBUG)
         console_handler.setFormatter(formatter)
-        root.addHandler(console_handler)
+        pkg.addHandler(console_handler)
 
 
 def get_logger(name: str) -> logging.Logger:

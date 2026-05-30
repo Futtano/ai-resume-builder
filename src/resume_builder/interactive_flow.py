@@ -14,12 +14,14 @@ from __future__ import annotations
 
 import json
 import re
+import readline  # noqa: F401 — enables GNU readline line-editing for input()
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
 from crewai import LLM
+from rich.console import Console
 
 from resume_builder.crews.job_parsing_crew.crew import JobParsingCrew
 from resume_builder.crews.repo_parsing_crew.crew import RepoParsingCrew
@@ -140,7 +142,9 @@ class InteractiveResumeFlow:
         self,
         resume_path: Path | None = None,
         output_dir: Path | None = None,
+        console: Console | None = None,
     ) -> None:
+        self._console = console or Console()
         self._output_dir = output_dir or settings.output_dir
         self.state = InteractiveResumeState(
             session_id=uuid.uuid4().hex[:8],
@@ -158,20 +162,22 @@ class InteractiveResumeFlow:
     def run(self) -> None:
         """Start the interactive REPL loop."""
         self._initialize()
-        print("\n[bold]Interactive Resume Builder[/]")
-        print("Describe changes in natural language, or type a command:")
-        print("  [bold]show[/]    — display current resume")
-        print("  [bold]tailor[/]  — generate tailored resumes for queued jobs")
-        print("  [bold]export[/]  — write .docx files")
-        print("  [bold]help[/]    — show this message")
-        print("  [bold]quit[/]    — save and exit")
-        print()
+        c = self._console
+        c.print()
+        c.print("[bold]Interactive Resume Builder[/]")
+        c.print("Describe changes in natural language, or type a command:")
+        c.print("  [bold]show[/]    — display current resume")
+        c.print("  [bold]tailor[/]  — generate tailored resumes for queued jobs")
+        c.print("  [bold]export[/]  — write .docx files")
+        c.print("  [bold]help[/]    — show this message")
+        c.print("  [bold]quit[/]    — save and exit")
+        c.print()
 
         while True:
             try:
                 raw = input("> ").strip()
             except (EOFError, KeyboardInterrupt):
-                print("\nSession ended.")
+                c.print("\nSession ended.")
                 break
 
             if not raw:
@@ -182,7 +188,7 @@ class InteractiveResumeFlow:
             if lowered in ("quit", "exit"):
                 self._save_state()
                 tailored = len(self.state.tailored_resumes)
-                print(f"Session saved. {tailored} resume(s) generated.")
+                self._console.print(f"Session saved. {tailored} resume(s) generated.")
                 break
             elif lowered == "help":
                 self._handle_help()
@@ -214,15 +220,17 @@ class InteractiveResumeFlow:
                 )
                 self.state.working_resume = result.pydantic  # type: ignore[assignment]
                 logger.info("Resume loaded: %s", self.state.working_resume.contact.name)
-                print(f"Loaded resume: {self.state.working_resume.contact.name}")
+                self._console.print(
+                    f"Loaded resume: {self.state.working_resume.contact.name}"
+                )
             except Exception as exc:
                 logger.error("Failed to parse resume: %s", exc)
-                print(f"Failed to parse resume: {exc}")
-                print("Starting with blank resume instead.")
+                self._console.print(f"Failed to parse resume: {exc}")
+                self._console.print("Starting with blank resume instead.")
                 self._create_blank()
         else:
             self._create_blank()
-            print("Starting with blank resume.")
+            self._console.print("Starting with blank resume.")
 
     def _create_blank(self) -> None:
         """Create a blank resume with placeholder contact."""
@@ -257,7 +265,7 @@ class InteractiveResumeFlow:
             response = self._llm.call(messages)
         except Exception as exc:
             logger.error("LLM call failed: %s", exc)
-            print(f"  Failed to process: {exc}")
+            self._console.print(f"  Failed to process: {exc}")
             self._log_turn("edit_error", str(exc), user_input)
             return
 
@@ -266,17 +274,19 @@ class InteractiveResumeFlow:
             update_dict = _extract_json(response)
         except (json.JSONDecodeError, ValueError) as exc:
             logger.error("LLM returned invalid JSON: %s", exc)
-            print(f"  Failed to parse response as JSON: {exc}")
+            self._console.print(f"  Failed to parse response as JSON: {exc}")
             self._log_turn("edit_error", f"Invalid JSON: {exc}", user_input)
             return
 
         if not isinstance(update_dict, dict):
-            print("  Unexpected response format — expected a JSON object.")
+            self._console.print(
+                "  Unexpected response format — expected a JSON object."
+            )
             self._log_turn("edit_error", "Response was not a dict", user_input)
             return
 
         if not update_dict:
-            print("  No changes detected.")
+            self._console.print("  No changes detected.")
             self._log_turn("edit_noop", "No fields returned", user_input)
             return
 
@@ -288,12 +298,12 @@ class InteractiveResumeFlow:
             self.state.working_resume = ParsedResume.model_validate(full_dict)
         except Exception as exc:
             logger.error("Failed to merge update: %s", exc)
-            print(f"  Failed to apply changes: {exc}")
+            self._console.print(f"  Failed to apply changes: {exc}")
             self._log_turn("edit_error", f"Merge failed: {exc}", user_input)
             return
 
         changed = ", ".join(update_dict.keys())
-        print(f"  Updated: {changed}")
+        self._console.print(f"  Updated: {changed}")
         self._log_turn("edit", f"Updated fields: {changed}", user_input)
 
     # ── Pre-fetch external data ───────────────────────────────────────
@@ -318,10 +328,10 @@ class InteractiveResumeFlow:
                 parts.append(
                     f"Fetched project '{repo}':\n{project.model_dump_json(indent=2)}"
                 )
-                print(f"  Fetched project: {project.repo_name}")
+                self._console.print(f"  Fetched project: {project.repo_name}")
             except Exception as exc:
                 logger.error("Failed to fetch project '%s': %s", repo, exc)
-                print(f"  Failed to fetch project '{repo}': {exc}")
+                self._console.print(f"  Failed to fetch project '{repo}': {exc}")
 
         # Detect job URLs/files
         sources = _extract_job_sources(user_input)
@@ -335,10 +345,12 @@ class InteractiveResumeFlow:
                 job_req: JobRequirements = output.pydantic  # type: ignore[assignment]
                 self.state.parsed_job_postings.append(job_req)
                 parts.append(f"Queued job: {job_req.job_title} at {job_req.company}")
-                print(f"  Queued job: {job_req.job_title} at {job_req.company}")
+                self._console.print(
+                    f"  Queued job: {job_req.job_title} at {job_req.company}"
+                )
             except Exception as exc:
                 logger.error("Failed to parse job '%s': %s", source, exc)
-                print(f"  Failed to parse job '{source}': {exc}")
+                self._console.print(f"  Failed to parse job '{source}': {exc}")
 
         return "\n".join(parts)
 
@@ -347,7 +359,7 @@ class InteractiveResumeFlow:
     def _handle_show(self) -> None:
         w = self.state.working_resume
         if not w:
-            print("No resume loaded.")
+            self._console.print("No resume loaded.")
             return
 
         lines = [
@@ -427,23 +439,23 @@ class InteractiveResumeFlow:
                 )
 
         lines.append("")
-        print("\n".join(lines))
+        self._console.print("\n".join(lines))
         self._log_turn("show", "Displayed resume summary")
 
     def _handle_tailor(self) -> None:
         jobs = self.state.parsed_job_postings
         if not jobs:
-            print("No jobs queued. Add a job first:")
-            print("  Paste a job URL or file path, e.g.:")
-            print("  > https://example.com/job-posting")
-            print("  > inputs/sample_job.txt")
+            self._console.print("No jobs queued. Add a job first:")
+            self._console.print("  Paste a job URL or file path, e.g.:")
+            self._console.print("  > https://example.com/job-posting")
+            self._console.print("  > inputs/sample_job.txt")
             self._log_turn("tailor", "No jobs queued")
             return
 
         wrk = self.state.working_resume
         assert wrk is not None
 
-        print(f"Tailoring for {len(jobs)} job(s)...")
+        self._console.print(f"Tailoring for {len(jobs)} job(s)...")
         logger.info("Tailoring for %d job(s)", len(jobs))
 
         try:
@@ -469,20 +481,20 @@ class InteractiveResumeFlow:
             ]
         except Exception as exc:
             logger.error("Tailoring failed: %s", exc)
-            print(f"  Tailoring failed: {exc}")
+            self._console.print(f"  Tailoring failed: {exc}")
             self._log_turn("tailor_error", str(exc))
             return
 
         improved: list[ImprovedResume] = final_resumes  # type: ignore[assignment]
         for r in improved:
             self.state.tailored_resumes.append(r.current_resume)
-            print(
+            self._console.print(
                 f"  {r.current_resume.company} / "
                 f"{r.current_resume.job_title} "
                 f"[{r.current_resume.confidence_score}%]"
             )
 
-        print(
+        self._console.print(
             f"Generated {len(improved)} tailored resume(s). Use 'export' to write .docx files."
         )
         self._log_turn("tailor", f"Generated {len(improved)} resume(s)")
@@ -495,7 +507,7 @@ class InteractiveResumeFlow:
             # Export the base working resume
             base = self._prepare_base_export()
             if base is None:
-                print("Nothing to export.")
+                self._console.print("Nothing to export.")
                 self._log_turn("export", "Nothing to export")
                 return
             to_export = [base]
@@ -506,31 +518,32 @@ class InteractiveResumeFlow:
                 path = render_resume(resume, self._output_dir)
                 if path:
                     exported.append(path)
-                    print(f"  {Path(path).name}")
+                    self._console.print(f"  {Path(path).name}")
             except Exception as exc:
                 logger.error("Failed to export %s: %s", resume.output_filename(), exc)
-                print(f"  Failed: {exc}")
+                self._console.print(f"  Failed: {exc}")
 
-        print(f"Exported {len(exported)} file(s) to {self._output_dir}")
+        self._console.print(f"Exported {len(exported)} file(s) to {self._output_dir}")
         self._log_turn("export", f"Exported {len(exported)} file(s)")
 
     def _handle_help(self) -> None:
-        print()
-        print("Describe changes in natural language, or use commands:")
-        print("  show    - display current resume")
-        print("  tailor  - generate tailored resumes for queued jobs")
-        print("  export  - write .docx files")
-        print("  help    - show this message")
-        print("  quit    - save and exit")
-        print()
-        print("Examples:")
-        print("  > My name is Jane Doe, email jane@example.com")
-        print("  > Add a project futha/awesome-tool")
-        print("  > Add experience: Senior Dev at ACME Corp, Jan 2022 - present")
-        print("  > Remove the second experience entry")
-        print("  > Add skill Rust, update summary to focus on systems programming")
-        print("  > https://example.com/job-posting")
-        print()
+        c = self._console
+        c.print()
+        c.print("Describe changes in natural language, or use commands:")
+        c.print("  show    - display current resume")
+        c.print("  tailor  - generate tailored resumes for queued jobs")
+        c.print("  export  - write .docx files")
+        c.print("  help    - show this message")
+        c.print("  quit    - save and exit")
+        c.print()
+        c.print("Examples:")
+        c.print("  > My name is Jane Doe, email jane@example.com")
+        c.print("  > Add a project futha/awesome-tool")
+        c.print("  > Add experience: Senior Dev at ACME Corp, Jan 2022 - present")
+        c.print("  > Remove the second experience entry")
+        c.print("  > Add skill Rust, update summary to focus on systems programming")
+        c.print("  > https://example.com/job-posting")
+        c.print()
 
     # ── Helpers ───────────────────────────────────────────────────────
 

@@ -39,6 +39,7 @@ _NOISY_THIRD_PARTY_LOGGERS = [
     "asyncio",
     "litellm",
     "crewai",
+    "CrewAIEventsBus",
     "chromadb",
     "opentelemetry",
 ]

@@ -188,8 +188,10 @@ class JobRequirements(BaseModel):
     Produced by the JobAnalyzer agent for each job
     """
 
-    job_title: str = Field(description="Job title or role as written in the posting")
-    company: str = Field(description="Company name")
+    job_title: str = Field(
+        min_length=1, description="Job title or role as written in the posting"
+    )
+    company: str = Field(min_length=1, description="Company name")
     seniority_level: str = Field(
         description="e.g. Junior, Mid-Level, Senior, Lead, Principal"
     )
@@ -303,8 +305,10 @@ class TailoredResume(BaseModel):
     """
 
     # Metadata (not shown on resume, used for file naming + UI)
-    job_title: str = Field(description="Job title or role as written in the posting")
-    company: str = Field(description="Company name")
+    job_title: str = Field(
+        min_length=1, description="Job title or role as written in the posting"
+    )
+    company: str = Field(min_length=1, description="Company name")
 
     # Resume content
     contact: ContactInfo = Field(description="Candidate's contact information")

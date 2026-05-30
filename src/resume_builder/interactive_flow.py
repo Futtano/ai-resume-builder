@@ -167,8 +167,12 @@ class InteractiveResumeFlow:
         c.print("[bold]Interactive Resume Builder[/]")
         c.print("Describe changes in natural language, or type a command:")
         c.print("  [bold]show[/]    — display current resume")
-        c.print("  [bold]tailor[/]  — generate tailored resumes for queued jobs")
-        c.print("  [bold]export[/]  — write .docx files")
+        c.print(
+            "  [bold]jobs[/]    — show queued jobs, or queue one: jobs <url-or-file-path>"
+        )
+        c.print(
+            "  [bold]export[/]  — tailor resumes for all queued jobs and write .docx files"
+        )
         c.print("  [bold]help[/]    — show this message")
         c.print("  [bold]quit[/]    — save and exit")
         c.print()
@@ -194,10 +198,10 @@ class InteractiveResumeFlow:
                 self._handle_help()
             elif lowered == "show":
                 self._handle_show()
-            elif lowered == "tailor":
-                self._handle_tailor()
             elif lowered == "export":
                 self._handle_export()
+            elif lowered == "jobs" or lowered.startswith("jobs "):
+                self._handle_jobs(raw[4:].strip())
             else:
                 self._handle_edit(raw)
 
@@ -442,16 +446,61 @@ class InteractiveResumeFlow:
         self._console.print("\n".join(lines))
         self._log_turn("show", "Displayed resume summary")
 
-    def _handle_tailor(self) -> None:
-        jobs = self.state.parsed_job_postings
-        if not jobs:
-            self._console.print("No jobs queued. Add a job first:")
-            self._console.print("  Paste a job URL or file path, e.g.:")
-            self._console.print("  > https://example.com/job-posting")
-            self._console.print("  > inputs/sample_job.txt")
-            self._log_turn("tailor", "No jobs queued")
+    def _handle_jobs(self, arg: str) -> None:
+        """Handle the jobs command.
+
+        With no argument: display currently queued job postings.
+        With a URL or file path: parse and queue the job posting
+        without activating the tailoring pipeline.
+        """
+        if not arg:
+            jobs = self.state.parsed_job_postings
+            if not jobs:
+                self._console.print("No jobs queued.")
+                self._console.print("  Queue one: [bold]jobs <url-or-file-path>[/]")
+                self._log_turn("jobs", "No jobs queued")
+                return
+            self._console.print(f"Queued jobs ({len(jobs)}):")
+            for j in jobs:
+                self._console.print(f"  - {j.job_title} at {j.company}")
+            self._log_turn("jobs", f"Displayed {len(jobs)} queued job(s)")
             return
 
+        sources = _extract_job_sources(arg)
+        if not sources:
+            self._console.print(
+                f"  Could not detect a job URL or .txt file path in: {arg}"
+            )
+            self._console.print("  Expected a URL (http://...) or a .txt file path.")
+            self._log_turn("jobs_error", f"Could not parse source: {arg}")
+            return
+
+        for source, source_type in sources:
+            try:
+                output = (
+                    JobParsingCrew()
+                    .crew()
+                    .kickoff(inputs={"source": source, "source_type": source_type})
+                )
+                job_req: JobRequirements = output.pydantic  # type: ignore[assignment]
+                self.state.parsed_job_postings.append(job_req)
+                self._console.print(
+                    f"  Queued: {job_req.job_title} at {job_req.company}"
+                )
+            except Exception as exc:
+                logger.error("Failed to parse job '%s': %s", source, exc)
+                self._console.print(f"  Failed to parse job '{source}': {exc}")
+
+        total = len(self.state.parsed_job_postings)
+        self._console.print(f"  {total} job(s) queued in total.")
+        self._log_turn("jobs_add", f"Queued job(s) from: {arg}")
+
+    def _run_tailoring(self) -> None:
+        """Run the ResumeBuilderCrew pipeline for all currently queued jobs.
+
+        Appends TailoredResume objects to ``self.state.tailored_resumes``.
+        """
+        jobs = self.state.parsed_job_postings
         wrk = self.state.working_resume
         assert wrk is not None
 
@@ -494,17 +543,29 @@ class InteractiveResumeFlow:
                 f"[{r.current_resume.confidence_score}%]"
             )
 
-        self._console.print(
-            f"Generated {len(improved)} tailored resume(s). Use 'export' to write .docx files."
-        )
+        self._console.print(f"Generated {len(improved)} tailored resume(s).")
         self._log_turn("tailor", f"Generated {len(improved)} resume(s)")
 
     def _handle_export(self) -> None:
         self._output_dir.mkdir(parents=True, exist_ok=True)
 
+        # ── Run tailoring if jobs are queued ──────────────────────────
+        if self.state.parsed_job_postings:
+            existing = len(self.state.tailored_resumes)
+            if existing > 0:
+                self._console.print(
+                    f"  Re-tailoring for {len(self.state.parsed_job_postings)} "
+                    f"job(s) (overwriting {existing} existing result(s))"
+                )
+            self.state.tailored_resumes.clear()
+            self._run_tailoring()
+            if not self.state.tailored_resumes:
+                self._console.print("  Export aborted: tailoring produced no results.")
+                self._log_turn("export_error", "Tailoring failed before export")
+                return
+
         to_export = self.state.tailored_resumes
         if not to_export:
-            # Export the base working resume
             base = self._prepare_base_export()
             if base is None:
                 self._console.print("Nothing to export.")
@@ -531,8 +592,8 @@ class InteractiveResumeFlow:
         c.print()
         c.print("Describe changes in natural language, or use commands:")
         c.print("  show    - display current resume")
-        c.print("  tailor  - generate tailored resumes for queued jobs")
-        c.print("  export  - write .docx files")
+        c.print("  jobs    - show queued jobs, or queue one: jobs <url-or-file-path>")
+        c.print("  export  - tailor resumes for all queued jobs and write .docx files")
         c.print("  help    - show this message")
         c.print("  quit    - save and exit")
         c.print()
@@ -543,6 +604,7 @@ class InteractiveResumeFlow:
         c.print("  > Remove the second experience entry")
         c.print("  > Add skill Rust, update summary to focus on systems programming")
         c.print("  > https://example.com/job-posting")
+        c.print("  > jobs https://example.com/another-job")
         c.print()
 
     # ── Helpers ───────────────────────────────────────────────────────
@@ -564,7 +626,7 @@ class InteractiveResumeFlow:
 
         return TailoredResume(
             job_title="Resume",
-            company="",
+            company="Untitled",
             contact=w.contact,
             professional_summary=w.professional_summary,
             experience=[

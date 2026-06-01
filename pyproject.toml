@@ -9,12 +9,15 @@ dependencies = [
   "crewai-tools>=0.76.0",
   "crewai[litellm]>=1.14.2",
   "docxtpl>=0.20.2",
+  "fastapi>=0.136.3",
   "pydantic>=2.11.10",
   "pymupdf>=1.26.7",
   "pymupdf-layout>=1.27.2.3",
   "pymupdf4llm>=1.27.2.3",
   "pypdf>=6.9.2",
   "python-docx>=1.2.0",
+  "python-multipart>=0.0.26",
+  "uvicorn[standard]>=0.44.0",
 ]
 
 [project.scripts]
@@ -34,9 +37,21 @@ python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 addopts = "-v --tb=short"
+asyncio_mode = "auto"
 
 [dependency-groups]
-dev = ["mypy>=2.1.0", "pytest>=9.0.3", "pytest-mock>=3.15.1", "ruff>=0.15.15"]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=2.1.0",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+    "pytest-mock>=3.15.1",
+    "ruff>=0.15.15",
+]
+
+[tool.mypy]
+explicit_package_bases = true
 
 [tool.ruff.lint]
 extend-select = ["B", "I", "UP"]
+ignore = ["B008"]  # FastAPI Depends() in function defaults is idiomatic

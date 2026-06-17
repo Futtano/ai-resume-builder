@@ -1,12 +1,8 @@
-"""V1 API router — assembles all endpoint routers under /api/v1.
-
-Auth (X-API-Key) is applied once at this level — every endpoint
-under /api/v1 requires a valid key.
-"""
+"""V1 API router — assembles all endpoint routers under /api/v1."""
 
 from fastapi import APIRouter, Depends
 
-from resume_builder.api.deps import get_current_user, get_session_service
+from resume_builder.api.deps import get_session_service
 from resume_builder.api.schemas.common import TaskStatusResponse
 from resume_builder.api.v1.endpoints import (
     conversation,
@@ -16,7 +12,7 @@ from resume_builder.api.v1.endpoints import (
     tailoring,
 )
 
-api_router = APIRouter(dependencies=[Depends(get_current_user)])
+api_router = APIRouter()
 
 # ── Sub-routers ──
 api_router.include_router(sessions.router, prefix="/sessions")

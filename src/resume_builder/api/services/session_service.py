@@ -25,6 +25,7 @@ from resume_builder.api.errors import (
     session_not_found,
 )
 from resume_builder.api.stores.base import SessionStore
+from resume_builder.api.utils.preview import render_resume_preview_docx_or_placeholder
 from resume_builder.crews.job_parsing_crew.crew import JobParsingCrew
 from resume_builder.crews.repo_parsing_crew.crew import RepoParsingCrew
 from resume_builder.crews.resume_building_crew.crew import ResumeBuilderCrew
@@ -627,6 +628,15 @@ class InteractiveSessionService:
         if await run_in_executor(_exists, path):
             return path
         return None
+
+    # ── Resume preview ──────────────────────────────────────────────
+
+    async def render_preview(self, user_id: str, session_id: str) -> bytes:
+        """Render the working resume as .docx bytes for client-side preview."""
+        state = await self.get_session(user_id, session_id)
+        return await run_in_executor(
+            render_resume_preview_docx_or_placeholder, state.working_resume
+        )
 
     # ── Conversation history ────────────────────────────────────────
 

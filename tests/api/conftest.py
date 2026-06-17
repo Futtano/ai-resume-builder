@@ -22,26 +22,6 @@ from resume_builder.models import (
     ParsedResume,
 )
 
-TEST_API_KEY = "test-api-key-123"
-TEST_USER_ID = "test-user"
-
-
-def _make_test_settings():
-    from resume_builder.api.core.config import ApiSettings
-
-    return ApiSettings(
-        api_keys={TEST_API_KEY: TEST_USER_ID},
-        api_cors_origins=["*"],
-    )
-
-
-@pytest.fixture(autouse=True)
-def _patch_settings(monkeypatch):
-    from resume_builder.api.core import config as config_mod
-
-    monkeypatch.setattr(config_mod, "get_api_settings", _make_test_settings)
-
-
 # ── Session-scoped external service mocks ────────────────────────
 # These persist for the entire test run so that fire-and-forget
 # background tasks (asyncio.create_task) never hit real APIs even
@@ -163,11 +143,6 @@ async def client(store):
     ) as ac:
         async with app.router.lifespan_context(app):
             yield ac
-
-
-@pytest.fixture
-def auth_headers():
-    return {"X-API-Key": TEST_API_KEY}
 
 
 # ── Sample domain models ──

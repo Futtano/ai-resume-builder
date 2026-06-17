@@ -2,53 +2,51 @@
 
 
 class TestQueueJob:
-    async def test_queues_job_from_url(self, client, auth_headers):
+    async def test_queues_job_from_url(self, client):
         """POST with a URL returns 202 and a task_id."""
-        r = await client.post("/api/v1/sessions", headers=auth_headers)
+        r = await client.post("/api/v1/sessions")
         sid = r.json()["session_id"]
 
         r = await client.post(
             f"/api/v1/sessions/{sid}/jobs",
-            headers=auth_headers,
-            data={"url": "https://example.com/jobs/123"},
+            json={"url": "https://example.com/jobs/123"},
         )
         assert r.status_code == 202
         assert "task_id" in r.json()
 
-    async def test_queues_job_from_text(self, client, auth_headers):
+    async def test_queues_job_from_text(self, client):
         """POST with raw text returns 202 and a task_id."""
-        r = await client.post("/api/v1/sessions", headers=auth_headers)
+        r = await client.post("/api/v1/sessions")
         sid = r.json()["session_id"]
 
         r = await client.post(
             f"/api/v1/sessions/{sid}/jobs",
-            headers=auth_headers,
-            data={"text": "Senior Engineer at TechCo — Go, cloud"},
+            json={"text": "Senior Engineer at TechCo — Go, cloud"},
         )
         assert r.status_code == 202
 
-    async def test_requires_source(self, client, auth_headers):
-        """POST without url/text/file returns 400."""
-        r = await client.post("/api/v1/sessions", headers=auth_headers)
+    async def test_requires_source(self, client):
+        """POST without url/text returns 400."""
+        r = await client.post("/api/v1/sessions")
         sid = r.json()["session_id"]
 
         r = await client.post(
             f"/api/v1/sessions/{sid}/jobs",
-            headers=auth_headers,
+            json={},
         )
         assert r.status_code == 400
 
 
 class TestListJobs:
-    async def test_lists_queued_jobs(self, client, auth_headers, store, sample_job):
-        r = await client.post("/api/v1/sessions", headers=auth_headers)
+    async def test_lists_queued_jobs(self, client, store, sample_job):
+        r = await client.post("/api/v1/sessions")
         sid = r.json()["session_id"]
 
-        state = await store.get("test-user", sid)
+        state = await store.get("default", sid)
         state.parsed_job_postings.append(sample_job)
-        await store.save("test-user", sid, state)
+        await store.save("default", sid, state)
 
-        r = await client.get(f"/api/v1/sessions/{sid}/jobs", headers=auth_headers)
+        r = await client.get(f"/api/v1/sessions/{sid}/jobs")
         assert r.status_code == 200
         data = r.json()
         assert len(data["jobs"]) == 1
@@ -56,14 +54,14 @@ class TestListJobs:
 
 
 class TestRemoveJob:
-    async def test_removes_job_by_index(self, client, auth_headers, store, sample_job):
-        r = await client.post("/api/v1/sessions", headers=auth_headers)
+    async def test_removes_job_by_index(self, client, store, sample_job):
+        r = await client.post("/api/v1/sessions")
         sid = r.json()["session_id"]
 
-        state = await store.get("test-user", sid)
+        state = await store.get("default", sid)
         state.parsed_job_postings.append(sample_job)
-        await store.save("test-user", sid, state)
+        await store.save("default", sid, state)
 
-        r = await client.delete(f"/api/v1/sessions/{sid}/jobs/0", headers=auth_headers)
+        r = await client.delete(f"/api/v1/sessions/{sid}/jobs/0")
         assert r.status_code == 200
         assert r.json()["deleted"] is True

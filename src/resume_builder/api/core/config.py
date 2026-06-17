@@ -12,9 +12,6 @@ class ApiSettings(BaseSettings):
     Separate from the CLI settings module to avoid coupling.
     """
 
-    api_keys: dict[str, str] = {}
-    """Mapping of API key value -> user_id. Configure in .env as JSON dict."""
-
     api_max_workers: int = 2
     """Maximum concurrent LLM operations in the thread pool."""
 

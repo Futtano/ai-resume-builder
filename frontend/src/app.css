@@ -1,0 +1,341 @@
+/* ── Fonts ─────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600&display=swap");
+
+/* ── Theme: Light (default) ────────────────────────────── */
+:root {
+  --bg-surface: #ffffff;
+  --bg-raised: #e5e7eb;
+  --bg-inset: #f9fafb;
+  --text-primary: #262626;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
+  --border-light: #d1d5db;
+  --border-default: #c4c4c4;
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-subtle: #f5f3ff;
+  --danger: #ef4444;
+  --danger-subtle: #fef2f2;
+  --success: #22c55e;
+  --success-subtle: #f0fdf4;
+  --warning: #f59e0b;
+  --placeholder-bg: #f9fafb;
+  --placeholder-text: #9ca3af;
+  --paper-bg: #ffffff;
+  --paper-shadow: 0 4px 8px -1px hsl(0 0% 0% / 0.1), 0 1px 3px -1px hsl(0 0% 0% / 0.06);
+  --sidebar-width: 260px;
+  --topbar-height: 40px;
+  --panel-min-width: 320px;
+  --resizer-width: 5px;
+  --resizer-hit-area: 12px;
+  --paper-page-max-width: 800px;
+  --paper-border-radius: 0.375rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-serif: "Source Serif 4", Georgia, serif;
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --ring: #7c3aed;
+  --popover: #ffffff;
+  --input: #c4c4c4;
+  --chart-1: #8b5cf6;
+  --chart-2: #7c3aed;
+  --chart-3: #6d28d9;
+  --chart-4: #5b21b6;
+  --chart-5: #4c1d95;
+  --sidebar-bg: #f9fafb;
+  --sidebar-accent: #f5f3ff;
+  --sidebar-border: #d1d5db;
+  --sidebar-ring: #7c3aed;
+}
+
+/* ── Theme: Dark ───────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg-surface: #171717;
+  --bg-raised: #262626;
+  --bg-inset: #262626;
+  --text-primary: #e5e5e5;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #737373;
+  --border-light: #404040;
+  --border-default: #404040;
+  --accent: #f59e0b;
+  --accent-hover: #d97706;
+  --accent-subtle: #92400e;
+  --danger: #ef4444;
+  --danger-subtle: #450a0a;
+  --success: #22c55e;
+  --success-subtle: #052e16;
+  --placeholder-bg: #262626;
+  --placeholder-text: #737373;
+  --paper-bg: #262626;
+  --paper-shadow: 0 4px 8px -1px hsl(0 0% 0% / 0.35), 0 1px 3px -1px hsl(0 0% 0% / 0.2);
+  --ring: #f59e0b;
+  --popover: #262626;
+  --input: #404040;
+  --chart-1: #fbbf24;
+  --chart-2: #d97706;
+  --chart-3: #92400e;
+  --chart-4: #b45309;
+  --chart-5: #92400e;
+  --sidebar-bg: #0f0f0f;
+  --sidebar-accent: #92400e;
+  --sidebar-border: #404040;
+  --sidebar-ring: #f59e0b;
+}
+
+/* ── Reset ─────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-base), color var(--transition-base);
+}
+
+body {
+  overflow: hidden;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: inherit;
+}
+
+input,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* ── Utility ───────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Top bar ────────────────────────────────────────────── */
+.topbar {
+  height: var(--topbar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+
+/* ── Preview content area (inset background behind paper) ─ */
+.preview-content-area {
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-inset);
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Paper page (Overleaf document appearance) ───────────── */
+.paper-page {
+  width: 100%;
+  max-width: var(--paper-page-max-width);
+  min-height: 1056px; /* ~A4 at 72dpi */
+  background: var(--paper-bg);
+  box-shadow: var(--paper-shadow);
+  border-radius: var(--paper-border-radius);
+  padding: 48px 56px;
+  margin: 20px auto;
+  overflow-x: hidden;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.paper-page * {
+  max-width: 100%;
+}
+
+.paper-page h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.paper-page h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 4px;
+  margin: 20px 0 8px;
+}
+
+.paper-page p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.paper-page ul {
+  list-style: disc;
+  padding-left: 20px;
+  margin-bottom: 8px;
+}
+
+.paper-page li {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.paper-page table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+
+.paper-page td,
+.paper-page th {
+  padding: 4px 8px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.paper-page .placeholder {
+  color: var(--placeholder-text);
+  font-style: italic;
+}
+
+/* ── Panel resizer ──────────────────────────────────────── */
+.panel-resizer {
+  width: var(--resizer-width);
+  cursor: col-resize;
+  background: var(--border-light);
+  flex-shrink: 0;
+  position: relative;
+  transition: background 0.15s ease;
+  z-index: 10;
+}
+
+.panel-resizer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * (var(--resizer-hit-area) - var(--resizer-width)) / 2);
+  right: calc(-1 * (var(--resizer-hit-area) - var(--resizer-width)) / 2);
+}
+
+.panel-resizer:hover,
+.panel-resizer.dragging {
+  background: var(--accent);
+}
+
+/* ── Animations ─────────────────────────────────────────── */
+@keyframes preview-fade-in {
+  from {
+    opacity: 0.6;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.preview-page-wrapper {
+  animation: preview-fade-in 0.3s ease;
+}
+
+/* ── docx-preview paper container ─────────────────────── */
+.docx-paper {
+  width: 100%;
+  max-width: var(--paper-page-max-width);
+  margin: 20px auto;
+}
+
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Responsive: stack panels vertically below 900px ────── */
+@media (max-width: 900px) {
+  #panels-container {
+    flex-direction: column !important;
+  }
+
+  #panels-container > div {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 50vh !important;
+    flex: none !important;
+  }
+
+  .panel-resizer {
+    display: none;
+  }
+}

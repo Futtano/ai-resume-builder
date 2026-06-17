@@ -23,6 +23,7 @@ dependencies = [
 [project.scripts]
 resume-builder = "resume_builder.main:app"
 plot = "resume_builder.flow:plot"
+serve = "resume_builder.app:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -41,12 +42,12 @@ asyncio_mode = "auto"
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
-    "mypy>=2.1.0",
-    "pytest>=9.0.3",
-    "pytest-asyncio>=1.4.0",
-    "pytest-mock>=3.15.1",
-    "ruff>=0.15.15",
+  "httpx>=0.28.1",
+  "mypy>=2.1.0",
+  "pytest>=9.0.3",
+  "pytest-asyncio>=1.4.0",
+  "pytest-mock>=3.15.1",
+  "ruff>=0.15.15",
 ]
 
 [tool.mypy]
@@ -54,4 +55,4 @@ explicit_package_bases = true
 
 [tool.ruff.lint]
 extend-select = ["B", "I", "UP"]
-ignore = ["B008"]  # FastAPI Depends() in function defaults is idiomatic
+ignore = ["B008"]                # FastAPI Depends() in function defaults is idiomatic

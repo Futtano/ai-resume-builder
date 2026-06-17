@@ -1,3 +1,6 @@
+@tailwind components;
+@tailwind utilities;
+
 /* ── Fonts ─────────────────────────────────────────────── */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600&display=swap");
@@ -67,7 +70,7 @@
   --border-default: #404040;
   --accent: #f59e0b;
   --accent-hover: #d97706;
-  --accent-subtle: #92400e;
+  --accent-subtle: #2d291e;
   --danger: #ef4444;
   --danger-subtle: #450a0a;
   --success: #22c55e;
@@ -87,7 +90,7 @@
   --chart-4: #b45309;
   --chart-5: #92400e;
   --sidebar-bg: #0f0f0f;
-  --sidebar-accent: #92400e;
+  --sidebar-accent: #2d291e;
   --sidebar-border: #404040;
   --sidebar-ring: #f59e0b;
 }

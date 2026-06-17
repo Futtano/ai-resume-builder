@@ -121,34 +121,24 @@
   }
 
   .action-btn {
-    padding: 3px 8px;
+    padding: 3px 10px;
     font-size: 11px;
     font-weight: 500;
     border-radius: var(--radius-sm);
-    transition: background var(--transition-fast), opacity var(--transition-fast);
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
     line-height: 1.6;
+    transition: background var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+  }
+
+  .action-btn:hover:not(:disabled) {
+    background: var(--accent-subtle);
+    color: var(--accent);
   }
 
   .action-btn:disabled {
-    opacity: 0.4;
+    opacity: 0.35;
     cursor: not-allowed;
-  }
-
-  .tailor-btn {
-    background: var(--accent);
-    color: white;
-  }
-
-  .tailor-btn:hover:not(:disabled) {
-    background: var(--accent-hover);
-  }
-
-  .export-btn {
-    background: var(--accent);
-    color: white;
-  }
-
-  .export-btn:hover:not(:disabled) {
-    background: var(--accent-hover);
   }
 </style>

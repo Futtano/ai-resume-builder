@@ -1,5 +1,7 @@
 /** Base HTTP client for the Resume Builder API. */
 
+import { auth } from "$lib/stores/auth.svelte";
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -35,11 +37,29 @@ export class ApiClient {
       headers["Content-Type"] = "application/json";
     }
 
-    const res = await fetch(url.toString(), {
+    // Attach auth token if available
+    if (auth.accessToken) {
+      headers["Authorization"] = `Bearer ${auth.accessToken}`;
+    }
+
+    let res = await fetch(url.toString(), {
       method,
       headers,
       body: options?.formData ?? (options?.body ? JSON.stringify(options.body) : undefined),
     });
+
+    // If 401, try refreshing the token once
+    if (res.status === 401 && auth.refreshTokenValue) {
+      const refreshed = await auth.refreshToken();
+      if (refreshed) {
+        headers["Authorization"] = `Bearer ${auth.accessToken}`;
+        res = await fetch(url.toString(), {
+          method,
+          headers,
+          body: options?.formData ?? (options?.body ? JSON.stringify(options.body) : undefined),
+        });
+      }
+    }
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }));

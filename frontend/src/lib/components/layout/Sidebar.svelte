@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { sessionStore } from "$lib/stores/session.svelte";
+  import { auth } from "$lib/stores/auth.svelte";
   import { ApiClient } from "$lib/api/client";
 
   let { onSessionSelect }: { onSessionSelect: (id: string) => void } = $props();
@@ -21,6 +23,11 @@
   $effect(() => {
     sessionStore.fetchSessions(api);
   });
+
+  function handleLogout() {
+    auth.logout();
+    goto("/", { replaceState: true });
+  }
 </script>
 
 <aside class="sidebar">
@@ -63,6 +70,25 @@
         </div>
       {/each}
     {/if}
+  </div>
+
+  <div class="sidebar-footer">
+    <span class="user-display" title={auth.username}>{auth.username}</span>
+    <button class="logout-btn" onclick={handleLogout} title="Log out">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="logout-icon"
+      >
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <polyline points="16 17 21 12 16 7" />
+        <line x1="21" y1="12" x2="9" y2="12" />
+      </svg>
+    </button>
   </div>
 
 </aside>
@@ -194,5 +220,45 @@
   .delete-btn:hover {
     color: var(--danger);
     background: var(--danger-subtle);
+  }
+
+  .sidebar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-light);
+    gap: 8px;
+  }
+
+  .user-display {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .logout-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .logout-btn:hover {
+    color: var(--danger);
+    background: var(--danger-subtle);
+  }
+
+  .logout-icon {
+    width: 16px;
+    height: 16px;
   }
 </style>

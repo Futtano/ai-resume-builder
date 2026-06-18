@@ -1,5 +1,8 @@
 <script lang="ts">
-  import AppShell from "$lib/components/layout/AppShell.svelte";
-</script>
+  import { goto } from "$app/navigation";
 
-<AppShell />
+  // Auth is at the root route now — redirect
+  $effect(() => {
+    goto("/", { replaceState: true });
+  });
+</script>

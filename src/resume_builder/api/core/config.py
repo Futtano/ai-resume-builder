@@ -27,6 +27,18 @@ class ApiSettings(BaseSettings):
     api_task_result_ttl_seconds: int = 300
     """How long completed task results are held in memory (5 min default)."""
 
+    api_secret_key: str = ""
+    """Secret key for signing JWT tokens. Set via API_SECRET_KEY env var or .env."""
+
+    api_db_path: str = "data/resume_builder.db"
+    """Path to the SQLite database file."""
+
+    api_access_token_expire_minutes: int = 15
+    """JWT access token lifetime in minutes."""
+
+    api_refresh_token_expire_days: int = 7
+    """Refresh token lifetime in days."""
+
     model_config = {
         "env_file": ".env",
         "extra": "ignore",

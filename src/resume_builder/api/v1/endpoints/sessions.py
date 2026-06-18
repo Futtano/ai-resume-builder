@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, Query
 
-from resume_builder.api.deps import get_default_user_id, get_session_service
+from resume_builder.api.deps import get_current_user_id, get_session_service
 from resume_builder.api.schemas.sessions import (
     SessionListResponse,
     SessionResponse,
@@ -14,7 +14,7 @@ router = APIRouter(tags=["sessions"])
 
 @router.post("", response_model=SessionResponse, status_code=201)
 async def create_session(
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> SessionResponse:
     """Create a new interactive resume tailoring session."""
@@ -26,7 +26,7 @@ async def create_session(
 async def list_sessions(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> SessionListResponse:
     """List sessions for the authenticated user, newest first."""
@@ -40,7 +40,7 @@ async def list_sessions(
 @router.get("/{session_id}", response_model=SessionResponse)
 async def get_session(
     session_id: str,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> SessionResponse:
     """Get full state for a session."""
@@ -51,7 +51,7 @@ async def get_session(
 @router.delete("/{session_id}", status_code=200)
 async def delete_session(
     session_id: str,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> dict[str, bool]:
     """Delete a session and all its files."""

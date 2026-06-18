@@ -1,5 +1,7 @@
 """Async SQLAlchemy engine, session factory, and table creation."""
 
+from __future__ import annotations
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -8,16 +10,8 @@ from resume_builder.logger import get_logger
 
 logger = get_logger(__name__)
 
-settings = get_api_settings()
-DATABASE_URL = f"sqlite+aiosqlite:///{settings.api_db_path}"
-
-engine = create_async_engine(DATABASE_URL, echo=False)
-
-AsyncSessionLocal = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+_engine = None
+_AsyncSessionLocal = None
 
 
 class Base(DeclarativeBase):
@@ -26,9 +20,43 @@ class Base(DeclarativeBase):
     pass
 
 
+def _get_database_url() -> str:
+    settings = get_api_settings()
+    if settings.api_db_path == ":memory:":
+        return "sqlite+aiosqlite://"
+    return f"sqlite+aiosqlite:///{settings.api_db_path}"
+
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        _engine = create_async_engine(_get_database_url(), echo=False)
+    return _engine
+
+
+def get_async_session_local():
+    global _AsyncSessionLocal
+    if _AsyncSessionLocal is None:
+        _AsyncSessionLocal = async_sessionmaker(
+            bind=_get_engine(),
+            class_=AsyncSession,
+            expire_on_commit=False,
+        )
+    return _AsyncSessionLocal
+
+
+def reset_db() -> None:
+    """Reset the engine and session factory (for testing)."""
+    global _engine, _AsyncSessionLocal
+    _engine = None
+    _AsyncSessionLocal = None
+    get_api_settings.cache_clear()  # type: ignore[attr-defined]
+
+
 async def get_db():
     """FastAPI dependency: yield an async database session."""
-    async with AsyncSessionLocal() as session:
+    factory = get_async_session_local()
+    async with factory() as session:
         try:
             yield session
         finally:
@@ -41,6 +69,7 @@ async def init_db() -> None:
     import resume_builder.api.models.session  # noqa: F401
     import resume_builder.api.models.user  # noqa: F401
 
+    engine = _get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables created (if not exist)")

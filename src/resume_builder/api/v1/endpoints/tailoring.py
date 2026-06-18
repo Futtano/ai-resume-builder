@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
-from resume_builder.api.deps import get_default_user_id, get_session_service
+from resume_builder.api.deps import get_current_user_id, get_session_service
 from resume_builder.api.errors import AppError
 from resume_builder.api.schemas.tailoring import (
     ExportItem,
@@ -19,7 +19,7 @@ router = APIRouter(tags=["tailoring"])
 @router.post("/{session_id}/tailor", status_code=202, response_model=TailorResponse)
 async def tailor(
     session_id: str,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> TailorResponse:
     """Run AI tailoring against all queued jobs.
@@ -36,7 +36,7 @@ async def tailor(
 @router.get("/{session_id}/tailor/status", response_model=TailorStatusResponse)
 async def tailor_status(
     session_id: str,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> TailorStatusResponse:
     """Check the progress of a tailoring run."""
@@ -53,7 +53,7 @@ async def tailor_status(
 )
 async def generate_exports(
     session_id: str,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> ExportListResponse:
     """Generate .docx files from all tailored resumes in this session.
@@ -67,7 +67,7 @@ async def generate_exports(
 @router.get("/{session_id}/exports", response_model=ExportListResponse)
 async def list_exports(
     session_id: str,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> ExportListResponse:
     """List generated .docx files for a session."""
@@ -79,7 +79,7 @@ async def list_exports(
 async def download_export(
     session_id: str,
     filename: str,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> FileResponse:
     """Download a generated .docx file."""

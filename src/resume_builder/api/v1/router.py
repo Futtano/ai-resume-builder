@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from resume_builder.api.deps import get_session_service
 from resume_builder.api.schemas.common import TaskStatusResponse
 from resume_builder.api.v1.endpoints import (
+    auth,
     conversation,
     jobs,
     resume,
@@ -15,6 +16,7 @@ from resume_builder.api.v1.endpoints import (
 api_router = APIRouter()
 
 # ── Sub-routers ──
+api_router.include_router(auth.auth_router)
 api_router.include_router(sessions.router, prefix="/sessions")
 api_router.include_router(resume.router, prefix="/sessions")
 api_router.include_router(jobs.router, prefix="/sessions")

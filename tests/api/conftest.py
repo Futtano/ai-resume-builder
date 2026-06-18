@@ -22,6 +22,8 @@ from resume_builder.models import (
     ParsedResume,
 )
 
+_TEST_USER_ID = "default"
+
 # ── Session-scoped external service mocks ────────────────────────
 # These persist for the entire test run so that fire-and-forget
 # background tasks (asyncio.create_task) never hit real APIs even
@@ -113,29 +115,35 @@ def mock_crews(_mock_external_services_globally):
     return crews
 
 
-# ── Store & client ───────────────────────────────────────────────
-
-
-@pytest.fixture
-def store(tmp_path):
-    """Isolated FileSessionStore for direct state manipulation in tests."""
-    from resume_builder.api.stores.file_store import FileSessionStore
-
-    return FileSessionStore(base_dir=tmp_path / "uploads")
+# ── In-memory SQLite + client ────────────────────────────────────
 
 
 @pytest_asyncio.fixture
-async def client(store):
-    """Async test client with store dependency overridden."""
-    from resume_builder.api.deps import get_session_store
+async def client():
+    """Async test client with auth bypassed and in-memory SQLite DB.
+
+    Overrides get_current_user_id to return a hardcoded test user ID,
+    and forces the database engine to use in-memory SQLite.
+    """
+    import os
+
+    # Set in-memory DB path before any database imports happen
+    os.environ["API_DB_PATH"] = ":memory:"
+
+    from resume_builder.api.core.database import reset_db
+
+    reset_db()
+
+    from resume_builder.api.deps import get_current_user_id
     from resume_builder.api.main import create_app
 
     app = create_app()
 
-    def _override_store():
-        return store
+    # Bypass auth: always return a test user ID
+    def _bypass_auth():
+        return _TEST_USER_ID
 
-    app.dependency_overrides[get_session_store] = _override_store
+    app.dependency_overrides[get_current_user_id] = _bypass_auth
 
     async with AsyncClient(
         transport=ASGITransport(app=app),
@@ -143,6 +151,17 @@ async def client(store):
     ) as ac:
         async with app.router.lifespan_context(app):
             yield ac
+
+
+# ── Store (shares the same in-memory DB as client) ──
+
+
+@pytest.fixture
+def store():
+    """SQLSessionStore backed by the same in-memory SQLite DB as the client."""
+    from resume_builder.api.stores.sql_store import SQLSessionStore
+
+    return SQLSessionStore()
 
 
 # ── Sample domain models ──

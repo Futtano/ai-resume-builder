@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from resume_builder.api.core.config import get_api_settings
+from resume_builder.api.core.database import init_db
 from resume_builder.api.core.workers import create_worker_pool, shutdown_worker_pool
 from resume_builder.logger import get_logger
 
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI):
     """Startup: create worker pool. Shutdown: drain and destroy pool."""
     settings = get_api_settings()
     create_worker_pool(max_workers=settings.api_max_workers)
+    await init_db()
     logger.info("API server started (workers=%d)", settings.api_max_workers)
     yield
     await shutdown_worker_pool()

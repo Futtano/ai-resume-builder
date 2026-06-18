@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
-from resume_builder.api.deps import get_default_user_id, get_session_service
+from resume_builder.api.deps import get_current_user_id, get_session_service
 from resume_builder.api.errors import AppError
 from resume_builder.api.schemas.common import TaskResponse
 from resume_builder.api.schemas.jobs import JobListResponse, QueueJobRequest
@@ -15,7 +15,7 @@ router = APIRouter(tags=["jobs"])
 async def queue_job(
     session_id: str,
     body: QueueJobRequest,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> TaskResponse:
     """Queue a job posting for later tailoring.
@@ -33,7 +33,7 @@ async def queue_job(
 @router.get("/{session_id}/jobs", response_model=JobListResponse)
 async def list_jobs(
     session_id: str,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> JobListResponse:
     """List queued job postings for a session."""
@@ -45,7 +45,7 @@ async def list_jobs(
 async def remove_job(
     session_id: str,
     job_index: int,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> dict[str, bool]:
     """Remove a queued job by its list index."""

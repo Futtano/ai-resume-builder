@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import Response
 
-from resume_builder.api.deps import get_default_user_id, get_session_service
+from resume_builder.api.deps import get_current_user_id, get_session_service
 from resume_builder.api.schemas.common import TaskResponse
 from resume_builder.api.schemas.resume import (
     EditResumeRequest,
@@ -20,7 +20,7 @@ router = APIRouter(tags=["resume"])
 async def upload_resume(
     session_id: str,
     file: UploadFile,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> ResumeUploadResponse:
     """Upload a resume PDF for the session."""
@@ -41,7 +41,7 @@ async def upload_resume(
 )
 async def parse_resume(
     session_id: str,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> TaskResponse:
     """Trigger AI parsing of the uploaded resume. Returns a task_id for polling."""
@@ -52,7 +52,7 @@ async def parse_resume(
 @router.get("/{session_id}/resume", response_model=ResumeResponse)
 async def get_resume(
     session_id: str,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> ResumeResponse:
     """Get the current working resume (ParsedResume)."""
@@ -63,7 +63,7 @@ async def get_resume(
 @router.get("/{session_id}/resume/preview.docx")
 async def get_resume_preview(
     session_id: str,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> Response:
     """Render the working resume as a .docx file for client-side preview.
@@ -82,7 +82,7 @@ async def get_resume_preview(
 async def edit_resume(
     session_id: str,
     body: EditResumeRequest,
-    user_id: str = Depends(get_default_user_id),
+    user_id: str = Depends(get_current_user_id),
     service: InteractiveSessionService = Depends(get_session_service),
 ) -> EditResumeResponse:
     """Apply a natural-language edit to the working resume.

@@ -15,7 +15,7 @@ class RefreshToken(Base):
     id: Mapped[str] = mapped_column(
         String(36),
         primary_key=True,
-        default_factory=lambda: str(uuid.uuid4()),
+        default=lambda: str(uuid.uuid4()),
     )
     user_id: Mapped[str] = mapped_column(
         String(36),
@@ -30,5 +30,5 @@ class RefreshToken(Base):
         DateTime(timezone=True), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default_factory=lambda: datetime.now(UTC)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

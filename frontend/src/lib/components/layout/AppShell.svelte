@@ -172,23 +172,29 @@
   /* ── Panel wrappers (needed for style prop forwarding) ── */
   .left-panel-wrapper {
     display: flex;
+    flex-direction: column;
     min-width: var(--panel-min-width);
+    min-height: 0;
     overflow: hidden;
   }
 
   .left-panel-wrapper :global(.left-panel) {
     flex: 1;
+    min-height: 0;
   }
 
   .right-panel-wrapper {
     display: flex;
+    flex-direction: column;
     flex: 1;
     min-width: var(--panel-min-width);
+    min-height: 0;
     overflow: hidden;
   }
 
   .right-panel-wrapper :global(.right-panel) {
     flex: 1;
+    min-height: 0;
   }
 
   /* ── Responsive: mobile (≤768px) ── */

@@ -6,12 +6,12 @@ authors = [{ name = "Daniele Loru", email = "futhanos@gmail.com" }]
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "aiosqlite>=0.21.0",
+  "bcrypt>=5.0.0",
   "crawl4ai>=0.8.6",
   "crewai-tools>=0.76.0",
   "crewai[litellm]>=1.14.2",
   "docxtpl>=0.20.2",
   "fastapi>=0.136.3",
-  "passlib[bcrypt]>=1.7.4",
   "pydantic>=2.11.10",
   "pymupdf>=1.26.7",
   "pymupdf-layout>=1.27.2.3",

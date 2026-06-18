@@ -334,20 +334,4 @@ textarea {
   }
 }
 
-/* ── Responsive: stack panels vertically below 900px ────── */
-@media (max-width: 900px) {
-  #panels-container {
-    flex-direction: column !important;
-  }
-
-  #panels-container > div {
-    width: 100% !important;
-    min-width: 0 !important;
-    height: 50vh !important;
-    flex: none !important;
-  }
-
-  .panel-resizer {
-    display: none;
-  }
-}
+/* ── Responsive: single panel below 768px (handled by AppShell) ────── */

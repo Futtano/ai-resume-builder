@@ -13,10 +13,7 @@
   let api = $derived(new ApiClient());
   let containerRef: HTMLDivElement | undefined = $state();
 
-  // Panel ratio: fraction for left panel, persisted to localStorage
   let leftRatio = $state(loadRatio());
-
-  // Mobile view toggle: "chat" or "preview"
   let mobileView = $state<"chat" | "preview">("chat");
 
   function loadRatio(): number {
@@ -26,18 +23,12 @@
         const n = parseFloat(stored);
         if (n >= 0.3 && n <= 0.7) return n;
       }
-    } catch {
-      // localStorage unavailable (SSR, private browsing, etc.)
-    }
+    } catch { /* ignore */ }
     return 0.45;
   }
 
   $effect(() => {
-    try {
-      globalThis.localStorage?.setItem("panel_ratio", String(leftRatio));
-    } catch {
-      // ignore
-    }
+    try { globalThis.localStorage?.setItem("panel_ratio", String(leftRatio)); } catch { /* ignore */ }
   });
 
   function handleResize(clientX: number) {
@@ -65,62 +56,32 @@
   let rightStyle = $derived(`flex: 1`);
 </script>
 
-<div class="app-shell">
+<div class="app-shell" data-mobile-view={mobileView}>
   <TopBar {onSessionSelect} />
 
-  <!-- Mobile tab bar — only visible on narrow screens -->
   <div class="mobile-tabs">
-    <button
-      class="mobile-tab"
-      class:active={mobileView === "chat"}
-      onclick={() => (mobileView = "chat")}
-    >
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-      Chat
-    </button>
-    <button
-      class="mobile-tab"
-      class:active={mobileView === "preview"}
-      onclick={() => (mobileView = "preview")}
-    >
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-      </svg>
-      Preview
-    </button>
+    <div class="mobile-tabs-inner">
+      <button class="mobile-tab" class:active={mobileView === "chat"} onclick={() => (mobileView = "chat")}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        Chat
+      </button>
+      <span class="mobile-tabs-sep"></span>
+      <button class="mobile-tab" class:active={mobileView === "preview"} onclick={() => (mobileView = "preview")}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+        Preview
+      </button>
+    </div>
   </div>
 
   <div class="panels-container" id="panels-container" bind:this={containerRef}>
-    <div class="left-panel-wrapper" class:mobile-hidden={mobileView !== "chat"} style={leftStyle}>
-      <LeftPanel {api} pollFn={createPollFn(api)} />
-    </div>
-    <div class="resizer-wrapper">
-      <PanelResizer onResize={handleResize} />
-    </div>
-    <div class="right-panel-wrapper" class:mobile-hidden={mobileView !== "preview"} style={rightStyle}>
-      <RightPanel {api} />
-    </div>
+    <LeftPanel {api} pollFn={createPollFn(api)} style={leftStyle} />
+    <PanelResizer onResize={handleResize} />
+    <RightPanel {api} style={rightStyle} />
   </div>
 </div>
 
@@ -140,16 +101,25 @@
     overflow: hidden;
   }
 
-  /* ── Mobile tab bar ── */
+  /* ── Mobile tabs ── */
   .mobile-tabs {
     display: none;
+  }
+
+  .mobile-tabs-inner {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
   }
 
   .mobile-tab {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 16px;
+    padding: 8px 20px;
     font-size: 13px;
     font-weight: 500;
     color: var(--text-tertiary);
@@ -158,68 +128,49 @@
     border-bottom: 2px solid transparent;
     cursor: pointer;
     transition: color 0.2s ease, border-color 0.2s ease;
+    flex-shrink: 0;
   }
 
-  .mobile-tab:hover {
-    color: var(--text-secondary);
+  .mobile-tab:hover { color: var(--text-secondary); }
+  .mobile-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .mobile-tabs-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--border-light);
+    flex-shrink: 0;
+    margin: 0 4px;
   }
 
-  .mobile-tab.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-  }
-
-  /* ── Panel wrappers (needed for style prop forwarding) ── */
-  .left-panel-wrapper {
-    display: flex;
-    flex-direction: column;
-    min-width: var(--panel-min-width);
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .left-panel-wrapper :global(.left-panel) {
-    flex: 1;
-    min-height: 0;
-  }
-
-  .right-panel-wrapper {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: var(--panel-min-width);
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .right-panel-wrapper :global(.right-panel) {
-    flex: 1;
-    min-height: 0;
-  }
-
-  /* ── Responsive: mobile (≤768px) ── */
+  /* ── Mobile layout (≤768px) ── */
   @media (max-width: 768px) {
     .mobile-tabs {
       display: flex;
-      align-items: stretch;
-      gap: 0;
-      padding: 0 8px;
+      align-items: center;
+      padding: 0 12px;
       background: var(--bg-raised);
       border-bottom: 1px solid var(--border-light);
       flex-shrink: 0;
     }
 
-    .resizer-wrapper {
+    /* Hide resizer */
+    .panels-container :global(.panel-resizer) {
       display: none;
     }
 
-    .left-panel-wrapper,
-    .right-panel-wrapper {
+    /* Both panels: fill container, only one visible */
+    .panels-container :global(.left-panel),
+    .panels-container :global(.right-panel) {
       flex: 1 !important;
+      min-width: 0 !important;
+      align-self: stretch !important;
     }
 
-    .left-panel-wrapper.mobile-hidden,
-    .right-panel-wrapper.mobile-hidden {
+    /* Hide based on data-mobile-view */
+    .app-shell[data-mobile-view="chat"] :global(.right-panel) {
+      display: none;
+    }
+    .app-shell[data-mobile-view="preview"] :global(.left-panel) {
       display: none;
     }
   }

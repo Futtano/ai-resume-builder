@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -9,6 +11,12 @@ from resume_builder.api.core.config import get_api_settings
 from resume_builder.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def utcnow() -> datetime:
+    """Return a naive UTC datetime for SQLite compatibility."""
+    return datetime.now(UTC).replace(tzinfo=None)
+
 
 _engine = None
 _AsyncSessionLocal = None
@@ -65,6 +73,13 @@ async def get_db():
 
 async def init_db() -> None:
     """Create all tables. Called during app startup lifespan."""
+    from pathlib import Path
+
+    # Ensure parent directory exists for file-based SQLite DBs
+    settings = get_api_settings()
+    if settings.api_db_path != ":memory:":
+        Path(settings.api_db_path).parent.mkdir(parents=True, exist_ok=True)
+
     import resume_builder.api.models.refresh_token  # noqa: F401 — register ORM models
     import resume_builder.api.models.session  # noqa: F401
     import resume_builder.api.models.user  # noqa: F401

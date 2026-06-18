@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 from sqlalchemy import delete, func, select
 
-from resume_builder.api.core.database import get_async_session_local
+from resume_builder.api.core.database import get_async_session_local, utcnow
 from resume_builder.api.models.session import Session
 from resume_builder.api.stores.base import SessionStore, SessionSummary
 from resume_builder.logger import get_logger
@@ -46,7 +44,7 @@ class SQLSessionStore(SessionStore):
 
             if row is not None:
                 row.state_json = state_json
-                row.updated_at = datetime.now(UTC)
+                row.updated_at = utcnow()
             else:
                 db.add(
                     Session(

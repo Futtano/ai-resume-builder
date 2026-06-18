@@ -1,9 +1,9 @@
 """Authentication endpoints — register, login, refresh, logout."""
 
 import hashlib
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,11 +12,10 @@ from resume_builder.api.auth.tokens import (
     create_access_token,
     create_refresh_token,
 )
-from resume_builder.api.core.database import get_db
+from resume_builder.api.core.database import get_db, utcnow
 from resume_builder.api.models.refresh_token import RefreshToken
 from resume_builder.api.models.user import User
 from resume_builder.api.schemas.auth import (
-    LoginRequest,
     RefreshRequest,
     TokenResponse,
     UserCreate,
@@ -69,16 +68,16 @@ async def register(
 
 @auth_router.post("/login", response_model=TokenResponse)
 async def login(
-    body: LoginRequest,
+    form: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
-    """Authenticate with username and password. Returns tokens."""
+    """Authenticate with username and password (OAuth2 form-encoded). Returns tokens."""
     result = await db.execute(
-        select(User).where(User.username == body.username.lower())
+        select(User).where(User.username == form.username.lower())
     )
     user = result.scalar_one_or_none()
 
-    if user is None or not verify_password(body.password, user.password_hash):
+    if user is None or not verify_password(form.password, user.password_hash):
         raise HTTPException(
             status_code=401,
             detail="Invalid username or password",
@@ -118,7 +117,7 @@ async def refresh(
     if stored is None:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    if stored.expires_at < datetime.now(UTC):
+    if stored.expires_at < utcnow():
         await db.delete(stored)
         await db.commit()
         raise HTTPException(status_code=401, detail="Refresh token expired")

@@ -34,14 +34,14 @@
   }
 
   .message:not(.system) .message-bubble {
-    background: var(--bg-raised);
+    background: rgb(var(--accent-rgb) / 0.12);
     color: var(--text-primary);
     align-self: flex-end;
     border-bottom-right-radius: var(--radius-sm);
   }
 
   .message.system .message-bubble {
-    background: var(--bg-raised);
+    background: rgb(var(--accent-rgb) / 0.06);
     color: var(--text-primary);
     border-bottom-left-radius: var(--radius-sm);
   }
@@ -59,15 +59,20 @@
     color: var(--text-secondary);
   }
 
-  /* Dark mode: user messages use accent color */
+  /* Dark mode: stronger accent tint for better contrast */
   :global([data-theme="dark"]) .message:not(.system) .message-bubble {
-    background: var(--accent);
-    color: white;
+    background: rgb(var(--accent-rgb) / 0.22);
+    color: var(--text-primary);
+  }
+
+  :global([data-theme="dark"]) .message.system .message-bubble {
+    background: rgb(var(--accent-rgb) / 0.1);
+    color: var(--text-primary);
   }
 
   :global([data-theme="dark"]) .message:not(.system) .result-summary {
-    border-top-color: rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.85);
+    border-top-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.75);
   }
 
   .timestamp {
